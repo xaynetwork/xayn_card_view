@@ -7,7 +7,7 @@ class CardViewController extends ChangeNotifier {
 
   set index(int value) {
     if (_index != value) {
-      _index = index;
+      _index = value;
 
       notifyListeners();
     }

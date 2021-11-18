@@ -1,6 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 
+const double kCardSizeFraction = .9;
+const double kItemSpacing = 12.0;
+const Duration kAnimateToSnapDuration = Duration(milliseconds: 200);
+const BorderRadius kClipBorderRadius = BorderRadius.all(
+  Radius.circular(12.0),
+);
+
 class CardView<T> extends StatefulWidget {
   final int itemCount;
   final double itemSpacing;
@@ -9,19 +16,19 @@ class CardView<T> extends StatefulWidget {
   final CardViewController? controller;
   final double size;
   final BorderRadius clipBorderRadius;
+  final Duration animateToSnapDuration;
 
-  const CardView(
-      {Key? key,
-      required this.itemCount,
-      required this.itemBuilder,
-      this.secondaryItemBuilder,
-      this.controller,
-      this.size = .9,
-      this.itemSpacing = 12.0,
-      this.clipBorderRadius = const BorderRadius.all(
-        Radius.circular(12.0),
-      )})
-      : super(key: key);
+  const CardView({
+    Key? key,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.secondaryItemBuilder,
+    this.controller,
+    this.size = kCardSizeFraction,
+    this.itemSpacing = kItemSpacing,
+    this.clipBorderRadius = kClipBorderRadius,
+    this.animateToSnapDuration = kAnimateToSnapDuration,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => CardViewState();
@@ -31,6 +38,7 @@ class CardViewState<T> extends State<CardView<T>> {
   late final ScrollController _scrollController;
   int _index = 0;
   double _oldOffset = .0;
+  bool _isAbsorbingPointer = false;
 
   @override
   void initState() {
@@ -62,6 +70,8 @@ class CardViewState<T> extends State<CardView<T>> {
 
     if (oldWidget.itemCount != widget.itemCount) {
       _index = widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0;
+
+      widget.controller?.index = _index;
     }
   }
 
@@ -71,7 +81,8 @@ class CardViewState<T> extends State<CardView<T>> {
     final secondaryItemBuilder = widget.secondaryItemBuilder ?? primaryBuilder;
 
     return LayoutBuilder(builder: (context, constraints) {
-      final primaryCard = primaryBuilder(context, _index);
+      final primaryCard =
+          widget.itemCount > 0 ? primaryBuilder(context, _index) : null;
       final cardAbove =
           _index > 0 ? secondaryItemBuilder(context, _index - 1) : null;
       final cardBelow = _index < widget.itemCount - 1
@@ -92,22 +103,29 @@ class CardViewState<T> extends State<CardView<T>> {
             ),
           );
 
-      return SingleChildScrollView(
-        controller: _scrollController,
-        child: Listener(
-          onPointerDown: _onDragStart,
-          onPointerUp: _onDragEnd(constraints),
-          child: Padding(
-            padding: EdgeInsets.only(top: widget.itemSpacing),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (cardAbove != null) constraintToSize(cardAbove),
-                constraintToSize(primaryCard),
-                if (cardBelow != null) constraintToSize(cardBelow),
-              ],
-            ),
-          ),
+      final rowOrColumnChild = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (cardAbove != null) constraintToSize(cardAbove),
+          if (primaryCard != null) constraintToSize(primaryCard),
+          if (cardBelow != null) constraintToSize(cardBelow),
+        ],
+      );
+
+      final singleScrollChild = Listener(
+        onPointerDown: _onDragStart,
+        onPointerUp: _onDragEnd(constraints),
+        child: Padding(
+          padding: EdgeInsets.only(top: widget.itemSpacing),
+          child: rowOrColumnChild,
+        ),
+      );
+
+      return AbsorbPointer(
+        absorbing: _isAbsorbingPointer,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          child: singleScrollChild,
         ),
       );
     });
@@ -116,9 +134,11 @@ class CardViewState<T> extends State<CardView<T>> {
   void _onControllerChanged() {
     final controller = widget.controller!;
 
-    setState(() {
-      _index = controller.index;
-    });
+    if (_index != controller.index) {
+      setState(() {
+        _index = controller.index;
+      });
+    }
   }
 
   void _onDragStart(PointerDownEvent? event) {
@@ -129,7 +149,7 @@ class CardViewState<T> extends State<CardView<T>> {
       (PointerUpEvent? event) async {
         final chipSize = (1.0 - widget.size) * constraints.maxHeight;
         final delta = _scrollController.offset - _oldOffset;
-        final threshold = constraints.maxHeight / 2;
+        final threshold = constraints.maxHeight / 3;
         int pageOffset = 0;
 
         if (delta > threshold) {
@@ -138,14 +158,19 @@ class CardViewState<T> extends State<CardView<T>> {
           pageOffset--;
         }
 
+        setState(() => _isAbsorbingPointer = true);
+
         await _scrollController.animateTo(
-          _oldOffset + pageOffset * constraints.maxHeight,
-          duration: const Duration(milliseconds: 200),
+          _oldOffset + pageOffset * constraints.maxHeight - 2 * chipSize,
+          duration: widget.animateToSnapDuration,
           curve: Curves.easeOut,
         );
 
         setState(() {
           _index += pageOffset;
+          _isAbsorbingPointer = false;
+
+          widget.controller?.index = _index;
 
           final jumpToOffset = _index > 0 ? chipSize : .0;
 
