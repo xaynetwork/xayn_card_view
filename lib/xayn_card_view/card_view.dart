@@ -160,10 +160,13 @@ class CardViewState<T> extends State<CardView<T>> {
 
       return AbsorbPointer(
         absorbing: _isAbsorbingPointer,
-        child: SingleChildScrollView(
-          scrollDirection: widget.scrollDirection,
-          controller: _scrollController,
-          child: singleScrollChild,
+        child: ScrollConfiguration(
+          behavior: const NoOverscrollBehavior(),
+          child: SingleChildScrollView(
+            scrollDirection: widget.scrollDirection,
+            controller: _scrollController,
+            child: singleScrollChild,
+          ),
         ),
       );
     });
@@ -220,4 +223,14 @@ class CardViewState<T> extends State<CardView<T>> {
               .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
         });
       };
+}
+
+class NoOverscrollBehavior extends ScrollBehavior {
+  const NoOverscrollBehavior();
+
+  @override
+  Widget buildViewportChrome(
+      BuildContext context, Widget child, AxisDirection axisDirection) {
+    return child;
+  }
 }
