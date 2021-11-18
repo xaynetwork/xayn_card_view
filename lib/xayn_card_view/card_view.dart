@@ -3,7 +3,7 @@ import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 
 const double kCardSizeFraction = .9;
 const double kItemSpacing = 12.0;
-const Duration kAnimateToSnapDuration = Duration(milliseconds: 200);
+const Duration kAnimateToSnapDuration = Duration(milliseconds: 260);
 const BorderRadius kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
 );
@@ -35,9 +35,12 @@ class CardView<T> extends StatefulWidget {
 }
 
 class CardViewState<T> extends State<CardView<T>> {
+  final Map<int, Widget> _builtPrimaryWidgets = <int, Widget>{};
+  final Map<int, Widget> _builtSecondaryWidgets = <int, Widget>{};
   late final ScrollController _scrollController;
   int _index = 0;
   double _oldOffset = .0;
+  double _chipSize = .0;
   bool _isAbsorbingPointer = false;
 
   @override
@@ -62,6 +65,9 @@ class CardViewState<T> extends State<CardView<T>> {
     _scrollController.dispose();
 
     widget.controller?.removeListener(_onControllerChanged);
+
+    _builtPrimaryWidgets.clear();
+    _builtSecondaryWidgets.clear();
   }
 
   @override
@@ -69,9 +75,20 @@ class CardViewState<T> extends State<CardView<T>> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.itemCount != widget.itemCount) {
+      final wasAtEnd = _index == oldWidget.itemCount - 1;
+      final hasMoreItemsNow = widget.itemCount > oldWidget.itemCount;
+
       _index = widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0;
 
       widget.controller?.index = _index;
+
+      if (wasAtEnd && hasMoreItemsNow) {
+        _scrollController.animateTo(
+          _scrollController.offset + _chipSize,
+          duration: widget.animateToSnapDuration,
+          curve: Curves.easeOut,
+        );
+      }
     }
   }
 
@@ -147,7 +164,8 @@ class CardViewState<T> extends State<CardView<T>> {
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
-        final chipSize = (1.0 - widget.size) * constraints.maxHeight;
+        _chipSize = (1.0 - widget.size) * constraints.maxHeight;
+
         final delta = _scrollController.offset - _oldOffset;
         final threshold = constraints.maxHeight / 3;
         int pageOffset = 0;
@@ -161,7 +179,7 @@ class CardViewState<T> extends State<CardView<T>> {
         setState(() => _isAbsorbingPointer = true);
 
         await _scrollController.animateTo(
-          _oldOffset + pageOffset * constraints.maxHeight - 2 * chipSize,
+          _oldOffset + pageOffset * constraints.maxHeight,
           duration: widget.animateToSnapDuration,
           curve: Curves.easeOut,
         );
@@ -172,7 +190,7 @@ class CardViewState<T> extends State<CardView<T>> {
 
           widget.controller?.index = _index;
 
-          final jumpToOffset = _index > 0 ? chipSize : .0;
+          final jumpToOffset = _index > 0 ? _chipSize : .0;
 
           _scrollController.jumpTo(
               _index.clamp(0, 1) * constraints.maxHeight - jumpToOffset);
