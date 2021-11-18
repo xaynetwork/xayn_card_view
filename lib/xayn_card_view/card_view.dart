@@ -4,6 +4,7 @@ import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 const double kCardSizeFraction = .9;
 const double kItemSpacing = 12.0;
 const Duration kAnimateToSnapDuration = Duration(milliseconds: 260);
+const Axis kScrollDirection = Axis.vertical;
 const BorderRadius kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
 );
@@ -17,6 +18,7 @@ class CardView<T> extends StatefulWidget {
   final double size;
   final BorderRadius clipBorderRadius;
   final Duration animateToSnapDuration;
+  final Axis scrollDirection;
 
   const CardView({
     Key? key,
@@ -28,6 +30,7 @@ class CardView<T> extends StatefulWidget {
     this.itemSpacing = kItemSpacing,
     this.clipBorderRadius = kClipBorderRadius,
     this.animateToSnapDuration = kAnimateToSnapDuration,
+    this.scrollDirection = kScrollDirection,
   }) : super(key: key);
 
   @override
@@ -42,6 +45,8 @@ class CardViewState<T> extends State<CardView<T>> {
   double _oldOffset = .0;
   double _chipSize = .0;
   bool _isAbsorbingPointer = false;
+
+  bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
 
   @override
   void initState() {
@@ -98,20 +103,26 @@ class CardViewState<T> extends State<CardView<T>> {
     final secondaryItemBuilder = widget.secondaryItemBuilder ?? primaryBuilder;
 
     return LayoutBuilder(builder: (context, constraints) {
-      final primaryCard =
+      final cardPrimary =
           widget.itemCount > 0 ? primaryBuilder(context, _index) : null;
-      final cardAbove =
+      final cardBefore =
           _index > 0 ? secondaryItemBuilder(context, _index - 1) : null;
-      final cardBelow = _index < widget.itemCount - 1
+      final cardAfter = _index < widget.itemCount - 1
           ? secondaryItemBuilder(context, _index + 1)
           : null;
-      final cardSize = widget.size * constraints.maxHeight;
+      final fullSize =
+          isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+      final cardSize = widget.size * fullSize;
+      final w = isVerticalScroll ? null : cardSize;
+      final h = isVerticalScroll ? cardSize : null;
 
       constraintToSize(Widget child) => SizedBox(
-            height: cardSize,
+            width: w,
+            height: h,
             child: Padding(
               padding: EdgeInsets.only(
-                bottom: widget.itemSpacing,
+                bottom: isVerticalScroll ? widget.itemSpacing : .0,
+                right: isVerticalScroll ? .0 : widget.itemSpacing,
               ),
               child: ClipRRect(
                 child: child,
@@ -120,20 +131,29 @@ class CardViewState<T> extends State<CardView<T>> {
             ),
           );
 
-      final rowOrColumnChild = Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (cardAbove != null) constraintToSize(cardAbove),
-          if (primaryCard != null) constraintToSize(primaryCard),
-          if (cardBelow != null) constraintToSize(cardBelow),
-        ],
-      );
+      final children = [
+        if (cardBefore != null) constraintToSize(cardBefore),
+        if (cardPrimary != null) constraintToSize(cardPrimary),
+        if (cardAfter != null) constraintToSize(cardAfter),
+      ];
+      final rowOrColumnChild = isVerticalScroll
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: children,
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: children,
+            );
 
       final singleScrollChild = Listener(
         onPointerDown: _onDragStart,
         onPointerUp: _onDragEnd(constraints),
         child: Padding(
-          padding: EdgeInsets.only(top: widget.itemSpacing),
+          padding: EdgeInsets.only(
+            top: isVerticalScroll ? widget.itemSpacing : .0,
+            left: isVerticalScroll ? .0 : widget.itemSpacing,
+          ),
           child: rowOrColumnChild,
         ),
       );
@@ -141,6 +161,7 @@ class CardViewState<T> extends State<CardView<T>> {
       return AbsorbPointer(
         absorbing: _isAbsorbingPointer,
         child: SingleChildScrollView(
+          scrollDirection: widget.scrollDirection,
           controller: _scrollController,
           child: singleScrollChild,
         ),
@@ -164,10 +185,13 @@ class CardViewState<T> extends State<CardView<T>> {
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
-        _chipSize = (1.0 - widget.size) * constraints.maxHeight;
+        final fullSize =
+            isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+
+        _chipSize = (1.0 - widget.size) * fullSize;
 
         final delta = _scrollController.offset - _oldOffset;
-        final threshold = constraints.maxHeight / 3;
+        final threshold = fullSize / 3;
         int pageOffset = 0;
 
         if (delta > threshold) {
@@ -179,7 +203,7 @@ class CardViewState<T> extends State<CardView<T>> {
         setState(() => _isAbsorbingPointer = true);
 
         await _scrollController.animateTo(
-          _oldOffset + pageOffset * constraints.maxHeight,
+          _oldOffset + pageOffset * fullSize,
           duration: widget.animateToSnapDuration,
           curve: Curves.easeOut,
         );
@@ -192,8 +216,8 @@ class CardViewState<T> extends State<CardView<T>> {
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
-          _scrollController.jumpTo(
-              _index.clamp(0, 1) * constraints.maxHeight - jumpToOffset);
+          _scrollController
+              .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
         });
       };
 }
