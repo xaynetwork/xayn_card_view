@@ -38,8 +38,6 @@ class CardView<T> extends StatefulWidget {
 }
 
 class CardViewState<T> extends State<CardView<T>> {
-  final Map<int, Widget> _builtPrimaryWidgets = <int, Widget>{};
-  final Map<int, Widget> _builtSecondaryWidgets = <int, Widget>{};
   late final ScrollController _scrollController;
   int _index = 0;
   double _oldOffset = .0;
@@ -70,9 +68,6 @@ class CardViewState<T> extends State<CardView<T>> {
     _scrollController.dispose();
 
     widget.controller?.removeListener(_onControllerChanged);
-
-    _builtPrimaryWidgets.clear();
-    _builtSecondaryWidgets.clear();
   }
 
   @override
@@ -99,12 +94,12 @@ class CardViewState<T> extends State<CardView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryBuilder = widget.itemBuilder;
-    final secondaryItemBuilder = widget.secondaryItemBuilder ?? primaryBuilder;
+    final secondaryItemBuilder =
+        widget.secondaryItemBuilder ?? widget.itemBuilder;
 
     return LayoutBuilder(builder: (context, constraints) {
       final cardPrimary =
-          widget.itemCount > 0 ? primaryBuilder(context, _index) : null;
+          widget.itemCount > 0 ? widget.itemBuilder(context, _index) : null;
       final cardBefore =
           _index > 0 ? secondaryItemBuilder(context, _index - 1) : null;
       final cardAfter = _index < widget.itemCount - 1
@@ -194,7 +189,7 @@ class CardViewState<T> extends State<CardView<T>> {
         _chipSize = (1.0 - widget.size) * fullSize;
 
         final delta = _scrollController.offset - _oldOffset;
-        final threshold = fullSize / 3;
+        final threshold = fullSize / 5;
         int pageOffset = 0;
 
         if (delta > threshold) {
