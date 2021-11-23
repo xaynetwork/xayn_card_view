@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:xayn_card_view/xayn_card_view/card_view_child.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 
 const double kCardSizeFraction = .9;
@@ -9,7 +10,7 @@ const BorderRadius kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
 );
 
-class CardView<T> extends StatefulWidget {
+class CardView extends StatefulWidget {
   final int itemCount;
   final double itemSpacing;
   final IndexedWidgetBuilder itemBuilder;
@@ -37,9 +38,11 @@ class CardView<T> extends StatefulWidget {
   State<StatefulWidget> createState() => CardViewState();
 }
 
-class CardViewState<T> extends State<CardView<T>> {
+class CardViewState extends State<CardView> {
+  final Map<int, CardViewChild> _builtWidgets = <int, CardViewChild>{};
   late final ScrollController _scrollController;
   int _index = 0;
+  int _topBuiltIndex = 0;
   double _oldOffset = .0;
   double _chipSize = .0;
   bool _isAbsorbingPointer = false;
@@ -66,12 +69,13 @@ class CardViewState<T> extends State<CardView<T>> {
     super.dispose();
 
     _scrollController.dispose();
+    _builtWidgets.clear();
 
     widget.controller?.removeListener(_onControllerChanged);
   }
 
   @override
-  void didUpdateWidget(CardView<T> oldWidget) {
+  void didUpdateWidget(CardView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.itemCount != widget.itemCount) {
@@ -97,48 +101,84 @@ class CardViewState<T> extends State<CardView<T>> {
     final secondaryItemBuilder =
         widget.secondaryItemBuilder ?? widget.itemBuilder;
 
+    buildCard({
+      required int index,
+      required IndexedWidgetBuilder builder,
+      required bool shouldRenderOffstage,
+      double? width,
+      double? height,
+    }) =>
+        _builtWidgets[index] = CardViewChild(
+          key: ValueKey(index),
+          child: builder(context, index),
+          width: width,
+          height: height,
+          isVerticalScroll: isVerticalScroll,
+          clipBorderRadius: widget.clipBorderRadius,
+          itemSpacing: widget.itemSpacing,
+          shouldRenderOffstage: shouldRenderOffstage,
+          shouldDispose: false,
+        );
+
     return LayoutBuilder(builder: (context, constraints) {
-      final cardPrimary =
-          widget.itemCount > 0 ? widget.itemBuilder(context, _index) : null;
-      final cardBefore =
-          _index > 0 ? secondaryItemBuilder(context, _index - 1) : null;
-      final cardAfter = _index < widget.itemCount - 1
-          ? secondaryItemBuilder(context, _index + 1)
-          : null;
       final fullSize =
           isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
       final cardSize = widget.size * fullSize;
       final w = isVerticalScroll ? null : cardSize;
       final h = isVerticalScroll ? cardSize : null;
 
-      constraintToSize(Widget child) => SizedBox(
+      if (widget.itemCount > 0) {
+        buildCard(
+          index: _index,
+          builder: widget.itemBuilder,
+          shouldRenderOffstage: false,
+          width: w,
+          height: h,
+        );
+      }
+
+      if (_index > 0) {
+        buildCard(
+          index: _index - 1,
+          builder: secondaryItemBuilder,
+          shouldRenderOffstage: false,
+          width: w,
+          height: h,
+        );
+      }
+
+      if (_index < widget.itemCount - 1) {
+        buildCard(
+          index: _index + 1,
+          builder: secondaryItemBuilder,
+          shouldRenderOffstage: false,
+          width: w,
+          height: h,
+        );
+      }
+
+      _topBuiltIndex = _index + 1;
+
+      for (var i = 0; i <= _topBuiltIndex; i++) {
+        if (i < _index - 1 || i > _index + 1) {
+          buildCard(
+            index: i,
+            builder: secondaryItemBuilder,
+            shouldRenderOffstage: true,
             width: w,
             height: h,
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: isVerticalScroll ? widget.itemSpacing : .0,
-                right: isVerticalScroll ? .0 : widget.itemSpacing,
-              ),
-              child: ClipRRect(
-                child: child,
-                borderRadius: widget.clipBorderRadius,
-              ),
-            ),
           );
+        }
+      }
 
-      final children = [
-        if (cardBefore != null) constraintToSize(cardBefore),
-        if (cardPrimary != null) constraintToSize(cardPrimary),
-        if (cardAfter != null) constraintToSize(cardAfter),
-      ];
       final rowOrColumnChild = isVerticalScroll
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
+              children: _builtWidgets.values.toList(),
             )
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: children,
+              children: _builtWidgets.values.toList(),
             );
 
       final singleScrollChild = Listener(
