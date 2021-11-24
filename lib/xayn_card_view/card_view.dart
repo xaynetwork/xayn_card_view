@@ -9,6 +9,7 @@ const Axis kScrollDirection = Axis.vertical;
 const BorderRadius kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
 );
+const double kDeltaThreshold = 50.0;
 
 class CardView extends StatefulWidget {
   final int itemCount;
@@ -20,6 +21,8 @@ class CardView extends StatefulWidget {
   final BorderRadius clipBorderRadius;
   final Duration animateToSnapDuration;
   final Axis scrollDirection;
+  final double deltaThreshold;
+  final VoidCallback? onFinalIndex;
 
   const CardView({
     Key? key,
@@ -32,6 +35,8 @@ class CardView extends StatefulWidget {
     this.clipBorderRadius = kClipBorderRadius,
     this.animateToSnapDuration = kAnimateToSnapDuration,
     this.scrollDirection = kScrollDirection,
+    this.deltaThreshold = kDeltaThreshold,
+    this.onFinalIndex,
   }) : super(key: key);
 
   @override
@@ -79,20 +84,9 @@ class CardViewState extends State<CardView> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.itemCount != widget.itemCount) {
-      final wasAtEnd = _index == oldWidget.itemCount - 1;
-      final hasMoreItemsNow = widget.itemCount > oldWidget.itemCount;
-
       _index = widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0;
 
       widget.controller?.index = _index;
-
-      if (wasAtEnd && hasMoreItemsNow) {
-        _scrollController.animateTo(
-          _scrollController.offset + _chipSize,
-          duration: widget.animateToSnapDuration,
-          curve: Curves.easeOut,
-        );
-      }
     }
   }
 
@@ -174,16 +168,27 @@ class CardViewState extends State<CardView> {
       final rowOrColumnChild = isVerticalScroll
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: _builtWidgets.values.toList(),
+              children: [
+                ..._builtWidgets.values,
+                SizedBox(
+                  height: _chipSize,
+                )
+              ],
             )
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: _builtWidgets.values.toList(),
+              children: [
+                ..._builtWidgets.values,
+                SizedBox(
+                  height: _chipSize,
+                )
+              ],
             );
 
       final singleScrollChild = Listener(
         onPointerDown: _onDragStart,
         onPointerUp: _onDragEnd(constraints),
+        onPointerMove: _onDragUpdate,
         child: Padding(
           padding: EdgeInsets.only(
             top: isVerticalScroll ? widget.itemSpacing : .0,
@@ -221,6 +226,10 @@ class CardViewState extends State<CardView> {
     _oldOffset = _scrollController.offset;
   }
 
+  void _onDragUpdate(_) {
+    //print(_scrollController.offset);
+  }
+
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
         final fullSize =
@@ -229,19 +238,21 @@ class CardViewState extends State<CardView> {
         _chipSize = (1.0 - widget.size) * fullSize;
 
         final delta = _scrollController.offset - _oldOffset;
-        final threshold = fullSize / 5;
         int pageOffset = 0;
 
-        if (delta > threshold) {
+        if (delta > widget.deltaThreshold) {
           pageOffset++;
-        } else if (delta < -threshold) {
+        } else if (delta < -widget.deltaThreshold) {
           pageOffset--;
         }
 
         setState(() => _isAbsorbingPointer = true);
 
+        final animationOffset =
+            _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
+
         await _scrollController.animateTo(
-          _oldOffset + pageOffset * fullSize,
+          animationOffset,
           duration: widget.animateToSnapDuration,
           curve: Curves.easeOut,
         );
@@ -251,11 +262,16 @@ class CardViewState extends State<CardView> {
           _isAbsorbingPointer = false;
 
           widget.controller?.index = _index;
+          print('$_index vs ${widget.itemCount}');
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
           _scrollController
               .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+
+          if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
+            widget.onFinalIndex?.call();
+          }
         });
       };
 }
