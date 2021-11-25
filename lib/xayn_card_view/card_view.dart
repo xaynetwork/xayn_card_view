@@ -61,6 +61,8 @@ class CardViewState extends State<CardView> {
     final controller = widget.controller;
 
     if (controller != null) {
+      assert(controller.index < widget.itemCount,
+          'Controller index is out of bound. index should be less than itemCount.');
       _index = controller.index;
 
       controller.addListener(_onControllerChanged);
@@ -217,6 +219,8 @@ class CardViewState extends State<CardView> {
 
     if (_index != controller.index) {
       setState(() {
+        assert(controller.index < widget.itemCount,
+            'Controller index is out of bound. index should be less than itemCount.');
         _index = controller.index;
       });
     }
