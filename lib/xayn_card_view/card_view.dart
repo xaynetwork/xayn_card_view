@@ -240,9 +240,9 @@ class CardViewState extends State<CardView> {
         final delta = _scrollController.offset - _oldOffset;
         int pageOffset = 0;
 
-        if (delta > widget.deltaThreshold) {
+        if (delta > widget.deltaThreshold && _index < widget.itemCount - 1) {
           pageOffset++;
-        } else if (delta < -widget.deltaThreshold) {
+        } else if (delta < -widget.deltaThreshold && _index > 0) {
           pageOffset--;
         }
 
