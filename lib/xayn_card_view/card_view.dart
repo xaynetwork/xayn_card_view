@@ -266,7 +266,7 @@ class CardViewState extends State<CardView> {
           _isAbsorbingPointer = false;
 
           widget.controller?.index = _index;
-          print('$_index vs ${widget.itemCount}');
+          debugPrint('$_index vs ${widget.itemCount}');
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
