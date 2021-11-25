@@ -61,6 +61,8 @@ class CardViewState extends State<CardView> {
     final controller = widget.controller;
 
     if (controller != null) {
+      assert(controller.index < widget.itemCount,
+          'Controller index is out of bound. index should be less than itemCount.');
       _index = controller.index;
 
       controller.addListener(_onControllerChanged);
@@ -188,7 +190,6 @@ class CardViewState extends State<CardView> {
       final singleScrollChild = Listener(
         onPointerDown: _onDragStart,
         onPointerUp: _onDragEnd(constraints),
-        onPointerMove: _onDragUpdate,
         child: Padding(
           padding: EdgeInsets.only(
             top: isVerticalScroll ? widget.itemSpacing : .0,
@@ -217,6 +218,8 @@ class CardViewState extends State<CardView> {
 
     if (_index != controller.index) {
       setState(() {
+        assert(controller.index < widget.itemCount,
+            'Controller index is out of bound. index should be less than itemCount.');
         _index = controller.index;
       });
     }
@@ -224,10 +227,6 @@ class CardViewState extends State<CardView> {
 
   void _onDragStart(PointerDownEvent? event) {
     _oldOffset = _scrollController.offset;
-  }
-
-  void _onDragUpdate(_) {
-    //print(_scrollController.offset);
   }
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
@@ -262,7 +261,6 @@ class CardViewState extends State<CardView> {
           _isAbsorbingPointer = false;
 
           widget.controller?.index = _index;
-          print('$_index vs ${widget.itemCount}');
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
