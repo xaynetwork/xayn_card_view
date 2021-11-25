@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/xaynetwork/xayn_card_view/branch/main/graph/badge.svg?token=3JCVZDONQU)](https://codecov.io/gh/xaynetwork/xayn_card_view)
+
 ## :bangbang: TO-DO list after creating repo from template:
 
  - [ ] Create new flutter project
