@@ -121,7 +121,7 @@ class CardViewState extends State<CardView> {
       final w = isVerticalScroll ? null : cardSize;
       final h = isVerticalScroll ? cardSize : null;
 
-      if (widget.itemCount > 0 && _index >= 0) {
+      if (widget.itemCount > 0) {
         buildCard(
           index: _index,
           builder: widget.itemBuilder,
@@ -141,7 +141,7 @@ class CardViewState extends State<CardView> {
         );
       }
 
-      if (_index < widget.itemCount - 1 && _index >= 0) {
+      if (_index < widget.itemCount - 1) {
         buildCard(
           index: _index + 1,
           builder: secondaryItemBuilder,
@@ -240,13 +240,11 @@ class CardViewState extends State<CardView> {
         final delta = _scrollController.offset - _oldOffset;
         int pageOffset = 0;
 
-        if (delta > widget.deltaThreshold) {
+        if (delta > widget.deltaThreshold && _index < widget.itemCount - 1) {
           pageOffset++;
-        } else if (delta < -widget.deltaThreshold) {
+        } else if (delta < -widget.deltaThreshold && _index > 0) {
           pageOffset--;
         }
-
-        if (_index + pageOffset < 0) return;
 
         setState(() => _isAbsorbingPointer = true);
 
