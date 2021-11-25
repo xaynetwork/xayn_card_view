@@ -7,20 +7,13 @@ import 'utils.dart';
 void main() {
   const data = ['a', 'b', 'c', 'd', 'e', 'f'];
 
-  expectFirstCard() {
-    expect(findCardChild(data[0]), findsOneWidget);
-    expect(findCardChild(data[1]), findsOneWidget);
-    expect(findCardChild(data[2]), findsNothing);
-  }
-
-  expectSecondCard() {
-    expect(findCardChild(data[2]), findsOneWidget);
-    expect(findCardChild(data[3]), findsNothing);
-  }
-
-  expectThirdCard() {
-    expect(findCardChild(data[3]), findsOneWidget);
-    expect(findCardChild(data[4]), findsNothing);
+  expectCardOfIndex(int index) {
+    final max = data.length;
+    if (index - 2 > 0) expect(findCardChild(data[index - 2]), findsNothing);
+    if (index - 1 > 0) expect(findCardChild(data[index - 1]), findsOneWidget);
+    expect(findCardChild(data[index]), findsOneWidget);
+    if (index + 1 < max) expect(findCardChild(data[index + 1]), findsOneWidget);
+    if (index + 2 < max) expect(findCardChild(data[index + 2]), findsNothing);
   }
 
   group('card view tests: ', () {
@@ -33,11 +26,13 @@ void main() {
         ),
       );
 
-      expectFirstCard();
+      expectCardOfIndex(0);
       await swipeUp(tester, findCardChild(data[0]));
-      expectSecondCard();
+      expectCardOfIndex(1);
       await swipeUp(tester, findCardChild(data[1]));
-      expectThirdCard();
+      expectCardOfIndex(2);
+      await swipeUp(tester, findCardChild(data[2]));
+      expectCardOfIndex(3);
     });
 
     testWidgets('Swipe Right', (WidgetTester tester) async {
@@ -50,11 +45,13 @@ void main() {
         ),
       );
 
-      expectFirstCard();
+      expectCardOfIndex(0);
       await swipeRight(tester, findCardChild(data[0]));
-      expectSecondCard();
+      expectCardOfIndex(1);
       await swipeRight(tester, findCardChild(data[1]));
-      expectThirdCard();
+      expectCardOfIndex(2);
+      await swipeRight(tester, findCardChild(data[2]));
+      expectCardOfIndex(3);
     });
 
     testWidgets('Secondary Item builder', (WidgetTester tester) async {
@@ -98,13 +95,13 @@ void main() {
           deltaThreshold: kDeltaThreshold,
         ),
       );
-      expectFirstCard();
+      expectCardOfIndex(0);
       await swipeUp(tester, findCardChild(data[0]),
           threshold: kDeltaThreshold - 5);
-      expectFirstCard();
+      expectCardOfIndex(0);
       await swipeUp(tester, findCardChild(data[0]),
           threshold: kDeltaThreshold + 5);
-      expectSecondCard();
+      expectCardOfIndex(1);
     });
 
     testWidgets('onFinalIndex', (WidgetTester tester) async {
