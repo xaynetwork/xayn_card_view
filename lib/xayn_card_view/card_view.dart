@@ -190,7 +190,6 @@ class CardViewState extends State<CardView> {
       final singleScrollChild = Listener(
         onPointerDown: _onDragStart,
         onPointerUp: _onDragEnd(constraints),
-        onPointerMove: _onDragUpdate,
         child: Padding(
           padding: EdgeInsets.only(
             top: isVerticalScroll ? widget.itemSpacing : .0,
@@ -230,10 +229,6 @@ class CardViewState extends State<CardView> {
     _oldOffset = _scrollController.offset;
   }
 
-  void _onDragUpdate(_) {
-    //print(_scrollController.offset);
-  }
-
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
         final fullSize =
@@ -266,7 +261,6 @@ class CardViewState extends State<CardView> {
           _isAbsorbingPointer = false;
 
           widget.controller?.index = _index;
-          debugPrint('$_index vs ${widget.itemCount}');
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
