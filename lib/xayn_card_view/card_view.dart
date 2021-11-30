@@ -125,8 +125,8 @@ class CardViewState extends State<CardView> {
       final fullSize =
           isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
       final cardSize = widget.size * fullSize;
-      final w = isVerticalScroll ? null : cardSize;
-      final h = isVerticalScroll ? cardSize : null;
+      final w = isVerticalScroll ? constraints.maxWidth : cardSize;
+      final h = isVerticalScroll ? cardSize : constraints.maxHeight;
 
       if (_shouldUpdateScrollPosition) {
         _shouldUpdateScrollPosition = false;
