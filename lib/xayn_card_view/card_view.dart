@@ -51,6 +51,7 @@ class CardViewState extends State<CardView> {
   double _oldOffset = .0;
   double _chipSize = .0;
   bool _isAbsorbingPointer = false;
+  bool _shouldUpdateScrollPosition = false;
 
   bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
 
@@ -90,6 +91,10 @@ class CardViewState extends State<CardView> {
 
       widget.controller?.index = _index;
     }
+
+    if (oldWidget.scrollDirection != widget.scrollDirection) {
+      _shouldUpdateScrollPosition = true;
+    }
   }
 
   @override
@@ -122,6 +127,19 @@ class CardViewState extends State<CardView> {
       final cardSize = widget.size * fullSize;
       final w = isVerticalScroll ? null : cardSize;
       final h = isVerticalScroll ? cardSize : null;
+
+      if (_shouldUpdateScrollPosition) {
+        _shouldUpdateScrollPosition = false;
+
+        final fullSize =
+            isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+
+        _chipSize = (1.0 - widget.size) * fullSize;
+
+        final jumpToOffset = _index > 0 ? _chipSize : .0;
+
+        _scrollController.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+      }
 
       if (widget.itemCount > 0) {
         buildCard(
