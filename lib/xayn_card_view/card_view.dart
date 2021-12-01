@@ -92,7 +92,8 @@ class CardViewState extends State<CardView> {
       widget.controller?.index = _index;
     }
 
-    if (oldWidget.scrollDirection != widget.scrollDirection) {
+    if (oldWidget.scrollDirection != widget.scrollDirection ||
+        oldWidget.size != widget.size) {
       _shouldUpdateScrollPosition = true;
     }
   }
@@ -200,7 +201,7 @@ class CardViewState extends State<CardView> {
               children: [
                 ..._builtWidgets.values,
                 SizedBox(
-                  height: _chipSize,
+                  width: _chipSize,
                 )
               ],
             );
