@@ -11,6 +11,8 @@ const BorderRadius kClipBorderRadius = BorderRadius.all(
 );
 const double kDeltaThreshold = 50.0;
 
+typedef IndexChangedCallback = void Function(int index);
+
 class CardView extends StatefulWidget {
   final int itemCount;
   final double itemSpacing;
@@ -23,6 +25,7 @@ class CardView extends StatefulWidget {
   final Axis scrollDirection;
   final double deltaThreshold;
   final VoidCallback? onFinalIndex;
+  final IndexChangedCallback? onIndexChanged;
 
   const CardView({
     Key? key,
@@ -37,6 +40,7 @@ class CardView extends StatefulWidget {
     this.scrollDirection = kScrollDirection,
     this.deltaThreshold = kDeltaThreshold,
     this.onFinalIndex,
+    this.onIndexChanged,
   }) : super(key: key);
 
   @override
@@ -70,6 +74,8 @@ class CardViewState extends State<CardView> {
     }
 
     _scrollController = ScrollController(keepScrollOffset: false);
+
+    widget.onIndexChanged?.call(_index);
   }
 
   @override
@@ -240,6 +246,7 @@ class CardViewState extends State<CardView> {
         assert(controller.index < widget.itemCount,
             'Controller index is out of bound. index should be less than itemCount.');
         _index = controller.index;
+        widget.onIndexChanged?.call(_index);
       });
     }
   }
@@ -285,6 +292,10 @@ class CardViewState extends State<CardView> {
 
           _scrollController
               .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+
+          if (pageOffset != 0) {
+            widget.onIndexChanged?.call(_index);
+          }
 
           if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
             widget.onFinalIndex?.call();
