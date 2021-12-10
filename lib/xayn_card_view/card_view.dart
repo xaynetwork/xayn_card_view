@@ -213,27 +213,27 @@ class CardViewState extends State<CardView> {
               ],
             );
 
-      final singleScrollChild = Listener(
-        onPointerDown: _onDragStart,
-        onPointerMove: _onDragUpdate,
-        onPointerUp: _onDragEnd(constraints),
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: isVerticalScroll ? widget.itemSpacing : .0,
-            left: isVerticalScroll ? .0 : widget.itemSpacing,
-          ),
-          child: rowOrColumnChild,
+      final singleScrollChild = Padding(
+        padding: EdgeInsets.only(
+          top: isVerticalScroll ? widget.itemSpacing : .0,
+          left: isVerticalScroll ? .0 : widget.itemSpacing,
         ),
+        child: rowOrColumnChild,
       );
 
       return AbsorbPointer(
         absorbing: _isAbsorbingPointer,
-        child: ScrollConfiguration(
-          behavior: const NoOverscrollBehavior(),
-          child: SingleChildScrollView(
-            scrollDirection: widget.scrollDirection,
-            controller: _scrollController,
-            child: singleScrollChild,
+        child: Listener(
+          onPointerDown: _onDragStart,
+          onPointerMove: _onDragUpdate,
+          onPointerUp: _onDragEnd(constraints),
+          child: ScrollConfiguration(
+            behavior: const NoOverscrollBehavior(),
+            child: SingleChildScrollView(
+              scrollDirection: widget.scrollDirection,
+              controller: _scrollController,
+              child: singleScrollChild,
+            ),
           ),
         ),
       );
