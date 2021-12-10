@@ -9,10 +9,10 @@ const RESOURCES = {
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
-"main.dart.js": "0ac68d3bb9e11c17c2aa0b234dd77c95",
+"main.dart.js": "83b74934ba66bac1c07ea449616e60dd",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
-"index.html": "3e5e573c58a4dd15cedcd7fa276e017c",
-"/": "3e5e573c58a4dd15cedcd7fa276e017c",
+"index.html": "992b289053686c4ee595ff08cca017fc",
+"/": "992b289053686c4ee595ff08cca017fc",
 "assets/FontManifest.json": "d751713988987e9331980363e24189ce",
 "assets/AssetManifest.json": "99914b932bd37a50b983c5e7c90ae93b",
 "assets/NOTICES": "737e0ba2eae1ea1e450465cc40009a84"
