@@ -56,6 +56,7 @@ class CardViewState extends State<CardView> {
   double _chipSize = .0;
   bool _isAbsorbingPointer = false;
   bool _shouldUpdateScrollPosition = false;
+  bool _didStartDragging = false;
 
   bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
 
@@ -214,6 +215,7 @@ class CardViewState extends State<CardView> {
 
       final singleScrollChild = Listener(
         onPointerDown: _onDragStart,
+        onPointerMove: _onDragUpdate,
         onPointerUp: _onDragEnd(constraints),
         child: Padding(
           padding: EdgeInsets.only(
@@ -252,7 +254,15 @@ class CardViewState extends State<CardView> {
   }
 
   void _onDragStart(PointerDownEvent? event) {
+    _didStartDragging = true;
     _oldOffset = _scrollController.offset;
+  }
+
+  void _onDragUpdate(PointerMoveEvent? event) {
+    if (!_didStartDragging) {
+      _didStartDragging = true;
+      _oldOffset = _scrollController.offset;
+    }
   }
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
