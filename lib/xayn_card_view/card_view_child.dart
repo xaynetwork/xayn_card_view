@@ -55,18 +55,25 @@ class _CardViewChildState extends State<CardViewChild>
   @override
   bool get wantKeepAlive => !widget.shouldDispose;
 
-  Widget constraintToSize() => SizedBox(
-        width: widget.width,
-        height: widget.height,
-        child: Padding(
-          padding: EdgeInsets.only(
-            bottom: widget.isVerticalScroll ? widget.itemSpacing : .0,
-            right: widget.isVerticalScroll ? .0 : widget.itemSpacing,
-          ),
-          child: ClipRRect(
-            child: widget.child,
-            borderRadius: widget.clipBorderRadius,
-          ),
+  Widget constraintToSize() {
+    final padding = EdgeInsets.only(
+      bottom: widget.isVerticalScroll ? widget.itemSpacing : .0,
+      right: widget.isVerticalScroll ? .0 : widget.itemSpacing,
+    ).clamp(
+      EdgeInsets.zero,
+      const EdgeInsets.all(double.maxFinite),
+    );
+
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: Padding(
+        padding: padding,
+        child: ClipRRect(
+          child: widget.child,
+          borderRadius: widget.clipBorderRadius,
         ),
-      );
+      ),
+    );
+  }
 }

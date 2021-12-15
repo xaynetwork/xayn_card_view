@@ -21,6 +21,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
         ),
@@ -39,6 +40,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           scrollDirection: Axis.horizontal,
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
@@ -60,6 +62,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
           secondaryItemBuilder: (context, index) => getCardChild(data2[index]),
@@ -90,6 +93,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
           deltaThreshold: kDeltaThreshold,
@@ -109,6 +113,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           itemCount: 2,
           itemBuilder: (context, index) => getCardChild(data[index]),
           onFinalIndex: () => onFinalIndexCalled++,
