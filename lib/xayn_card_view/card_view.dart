@@ -28,6 +28,7 @@ class CardView extends ImplicitlyAnimatedWidget {
   final VoidCallback? onFinalIndex;
   final IndexChangedCallback? onIndexChanged;
   final EdgeInsets padding;
+  final bool disableGestures;
 
   const CardView({
     Key? key,
@@ -46,6 +47,7 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.onFinalIndex,
     this.onIndexChanged,
     this.padding = kPadding,
+    this.disableGestures = false,
   }) : super(
           key: key,
           duration: animationDuration,
@@ -60,11 +62,11 @@ class CardView extends ImplicitlyAnimatedWidget {
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
   final Map<int, CardViewChild> _builtWidgets = <int, CardViewChild>{};
   late final ScrollController _scrollController;
+  bool _isAbsorbingPointer = false;
   int _index = 0;
   int _topBuiltIndex = 0;
   double _oldOffset = .0;
   double _chipSize = .0;
-  bool _isAbsorbingPointer = false;
   bool _shouldUpdateScrollPosition = false;
   bool _didStartDragging = false;
 
@@ -158,7 +160,11 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
       Radius.zero,
       const Radius.circular(double.maxFinite),
     );
-    final itemSpacing = (_itemSpacing?.evaluate(animation) ?? widget.itemSpacing).clamp(.0, double.maxFinite,);
+    final itemSpacing =
+        (_itemSpacing?.evaluate(animation) ?? widget.itemSpacing).clamp(
+      .0,
+      double.maxFinite,
+    );
     final secondaryItemBuilder =
         widget.secondaryItemBuilder ?? widget.itemBuilder;
 
@@ -314,11 +320,15 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   }
 
   void _onDragStart(PointerDownEvent? event) {
+    if (widget.disableGestures) return;
+
     _didStartDragging = true;
     _oldOffset = _scrollController.offset;
   }
 
   void _onDragUpdate(PointerMoveEvent? event) {
+    if (widget.disableGestures) return;
+
     if (!_didStartDragging) {
       _didStartDragging = true;
       _oldOffset = _scrollController.offset;
@@ -327,6 +337,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
+        if (widget.disableGestures) return;
+
         final size = _size?.evaluate(animation) ?? widget.size;
         final fullSize =
             isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
