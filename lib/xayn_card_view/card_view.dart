@@ -295,6 +295,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
             child: ScrollConfiguration(
               behavior: const NoOverscrollBehavior(),
               child: SingleChildScrollView(
+                physics: widget.disableGestures
+                    ? const NeverScrollableScrollPhysics()
+                    : null,
                 scrollDirection: widget.scrollDirection,
                 controller: _scrollController,
                 child: singleScrollChild,
