@@ -15375,8 +15375,9 @@ _.a=g},
 om:function om(a,b,c){var _=this
 _.dx=a
 _.dy=null
-_.go=_.fy=_.fx=_.fr=0
-_.k2=_.k1=_.id=!1
+_.fr=!1
+_.id=_.go=_.fy=_.fx=0
+_.k2=_.k1=!1
 _.e=_.d=_.r2=_.r1=_.k4=_.k3=null
 _.it$=b
 _.a=null
@@ -47859,7 +47860,7 @@ bA(a){var s,r,q=this
 q.GD(a)
 s=q.a
 r=s.r
-if(a.r!==r){q.fr=r>0?C.h.H(q.fr,0,r-1):0
+if(a.r!==r){q.fx=r>0?C.h.H(q.fx,0,r-1):0
 s=q.a
 s.toString}},
 Y(a,b){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=null,e=17976931348623157e292,d=g.r1
@@ -47892,16 +47893,18 @@ j=k.a3(0,j.gt(j))
 k=j}i=J.Zx(k==null?g.a.x:k,0,e)
 h=g.a.y
 return new T.f7(r,new A.xF(new Z.IH(g,new Z.IG(g,b,new K.bv(new P.b8(l,d),new P.b8(m,n),new P.b8(o,p),new P.b8(q,s)),i),h,i),f),f)},
-OV(a){var s
-this.k2=!0
-s=C.b.gbr(this.gh7().d).cx
+OV(a){var s,r=this
+r.a.toString
+r.k2=!0
+s=C.b.gbr(r.gh7().d).cx
 s.toString
-this.fy=s},
+r.go=s},
 OX(a){var s,r=this
+r.a.toString
 if(!r.k2){r.k2=!0
 s=C.b.gbr(r.gh7().d).cx
 s.toString
-r.fy=s}},
+r.go=s}},
 OT(a){return new Z.IF(this,a)}}
 Z.IM.prototype={
 $0(){this.a.k1=!0},
@@ -47936,23 +47939,23 @@ q=b.d
 p=s*q
 o=b.b
 if(g.k1){g.k1=!1
-n=g.go=C.c.H((1-s)*q,0,q)
-n=g.fr>0?n:0
-g.gh7().fF(C.h.H(g.fr,0,1)*q-n)}f=g.a
-if(f.r>0){r=g.fr
-i.b.$5$builder$height$index$shouldRenderOffstage$width(f.y,p,r,!1,o)}f=g.fr
+n=g.id=C.c.H((1-s)*q,0,q)
+n=g.fx>0?n:0
+g.gh7().fF(C.h.H(g.fx,0,1)*q-n)}f=g.a
+if(f.r>0){r=g.fx
+i.b.$5$builder$height$index$shouldRenderOffstage$width(f.y,p,r,!1,o)}f=g.fx
 if(f>0)i.b.$5$builder$height$index$shouldRenderOffstage$width(i.c,p,f-1,!1,o)
-f=g.fr
+f=g.fx
 if(f<g.a.r-1)i.b.$5$builder$height$index$shouldRenderOffstage$width(i.c,p,f+1,!1,o)
-g.fx=g.fr+1
-for(f=i.b,r=i.c,m=0;m<=g.fx;++m){l=g.fr
+g.fy=g.fx+1
+for(f=i.b,r=i.c,m=0;m<=g.fy;++m){l=g.fx
 if(m<l-1||m>l+1)f.$5$builder$height$index$shouldRenderOffstage$width(r,p,m,!0,o)}g.a.toString
 f=g.dx
 f=P.aw(f.gaQ(f),!0,t.cm)
-f.push(T.A6(h,g.go,h))
+f.push(T.A6(h,g.id,h))
 k=i.d*0.5
 g.a.toString
-r=g.id
+r=g.fr
 l=g.OT(b)
 g.a.toString
 j=g.gh7()
@@ -47962,49 +47965,50 @@ Z.IF.prototype={
 $1(a){return this.EE(a)},
 EE(a){var s=0,r=P.aa(t.H),q=this,p,o,n,m,l,k,j,i,h
 var $async$$1=P.a5(function(b,c){if(b===1)return P.a7(c,r)
-while(true)switch(s){case 0:j={}
-i=q.a
-h=i.k3
-if(h==null)p=null
-else{o=i.gcJ()
-o=h.a3(0,o.gt(o))
-p=o}if(p==null){i.a.toString
-p=0.9}i.a.toString
-n=q.b.d
-i.go=(1-p)*n
-h=C.b.gbr(i.gh7().d).cx
-h.toString
-m=h-i.fy
-j.a=0
-h=i.a
-h.toString
-if(m>50&&i.fr<h.r-1)h=j.a=1
-else if(m<-50&&i.fr>0){j.a=-1
-h=-1}else h=0
-i.aU(new Z.ID(i))
-o=i.fy
-l=i.go
-k=i.gh7()
-i.a.toString
+while(true)switch(s){case 0:i={}
+h=q.a
+h.a.toString
+p=h.k3
+if(p==null)o=null
+else{n=h.gcJ()
+n=p.a3(0,n.gt(n))
+o=n}if(o==null){h.a.toString
+o=0.9}h.a.toString
+m=q.b.d
+h.id=(1-o)*m
+p=C.b.gbr(h.gh7().d).cx
+p.toString
+l=p-h.go
+i.a=0
+p=h.a
+p.toString
+if(l>50&&h.fx<p.r-1)p=i.a=1
+else if(l<-50&&h.fx>0){i.a=-1
+p=-1}else p=0
+h.aU(new Z.ID(h))
+n=h.go
+k=h.id
+j=h.gh7()
+h.a.toString
 s=2
-return P.af(k.hk(o+h*n-h*l,C.xn,C.xF),$async$$1)
-case 2:i.aU(new Z.IE(j,i,n))
+return P.af(j.hk(n+p*m-p*k,C.xn,C.xF),$async$$1)
+case 2:h.aU(new Z.IE(i,h,m))
 return P.a8(null,r)}})
 return P.a9($async$$1,r)},
 $S:299}
 Z.ID.prototype={
-$0(){return this.a.id=!0},
+$0(){return this.a.fr=!0},
 $S:0}
 Z.IE.prototype={
-$0(){var s,r,q=this.b,p=this.a,o=q.fr+p.a
-q.fr=o
-s=q.id=!1
+$0(){var s,r,q=this.b,p=this.a,o=q.fx+p.a
+q.fx=o
+s=q.fr=!1
 q.a.toString
-r=o>0?q.go:0
-q.gh7().fF(C.h.H(q.fr,0,1)*this.c-r)
+r=o>0?q.id:0
+q.gh7().fF(C.h.H(q.fx,0,1)*this.c-r)
 if(p.a!==0)q.a.toString
 p=q.a.r
-p>0?q.fr===p-1:s},
+p>0?q.fx===p-1:s},
 $S:0}
 Z.O2.prototype={
 BC(a,b,c){return b}}
