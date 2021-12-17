@@ -32,6 +32,7 @@ class MyApp extends StatelessWidget {
           child: Container(
         color: Colors.white,
         child: CardView(
+          animationDuration: const Duration(seconds: 1),
           itemSpacing: 24,
           itemCount: data.length,
           itemBuilder: (context, index) => Container(

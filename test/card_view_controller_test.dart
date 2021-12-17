@@ -17,6 +17,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           controller: _controller,
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
@@ -33,6 +34,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           controller: _controller,
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
@@ -49,6 +51,7 @@ void main() {
       await standaloneWidgetSetup(
         tester,
         widget: CardView(
+          animationDuration: const Duration(seconds: 1),
           controller: _controller,
           itemCount: data.length,
           itemBuilder: (context, index) => getCardChild(data[index]),
