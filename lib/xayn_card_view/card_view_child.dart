@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class CardViewChild extends StatefulWidget {
@@ -6,6 +7,7 @@ class CardViewChild extends StatefulWidget {
   final double? height;
   final bool isVerticalScroll;
   final BorderRadius clipBorderRadius;
+  final BoxBorder? border;
   final double itemSpacing;
   final bool shouldDispose;
 
@@ -16,6 +18,7 @@ class CardViewChild extends StatefulWidget {
     required this.clipBorderRadius,
     required this.itemSpacing,
     required this.shouldDispose,
+    this.border,
     this.width,
     this.height,
   }) : super(key: key);
@@ -40,9 +43,16 @@ class _CardViewChildState extends State<CardViewChild> {
       height: widget.height,
       child: Padding(
         padding: padding,
-        child: ClipRRect(
+        child: Container(
           child: widget.child,
-          borderRadius: widget.clipBorderRadius,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            borderRadius: widget.clipBorderRadius,
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: widget.clipBorderRadius,
+            border: widget.border,
+          ),
         ),
       ),
     );

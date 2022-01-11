@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
+import 'package:xayn_card_view/xayn_card_view/card_sequence.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_child.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
+import 'package:xayn_card_view/xayn_card_view/indexed_card.dart';
 
 const double kCardSizeFraction = .9;
 const double kItemSpacing = 12.0;
@@ -13,14 +15,16 @@ const double kDeltaThreshold = 50.0;
 const EdgeInsets kPadding = EdgeInsets.zero;
 
 typedef IndexChangedCallback = void Function(int index);
+typedef BoxBorderBuilder = BoxBorder? Function(int index);
 
 class CardView extends ImplicitlyAnimatedWidget {
   final int itemCount;
   final double itemSpacing;
   final IndexedWidgetBuilder itemBuilder;
-  final IndexedWidgetBuilder? secondaryItemBuilder;
+  final IndexedWidgetBuilder secondaryItemBuilder;
   final CardViewController? controller;
   final double size;
+  final BoxBorderBuilder borderBuilder;
   final BorderRadius clipBorderRadius;
   final Duration animateToSnapDuration;
   final Axis scrollDirection;
@@ -30,16 +34,17 @@ class CardView extends ImplicitlyAnimatedWidget {
   final EdgeInsets padding;
   final bool disableGestures;
 
-  const CardView({
+  CardView({
     Key? key,
     required this.itemCount,
     required this.itemBuilder,
     required Duration animationDuration,
     Curve animationCurve = Curves.linear,
-    this.secondaryItemBuilder,
+    IndexedWidgetBuilder? secondaryItemBuilder,
     this.controller,
     this.size = kCardSizeFraction,
     this.itemSpacing = kItemSpacing,
+    BoxBorderBuilder? borderBuilder,
     this.clipBorderRadius = kClipBorderRadius,
     this.animateToSnapDuration = kAnimateToSnapDuration,
     this.scrollDirection = kScrollDirection,
@@ -48,7 +53,9 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.onIndexChanged,
     this.padding = kPadding,
     this.disableGestures = false,
-  }) : super(
+  })  : borderBuilder = borderBuilder ?? ((_) => null),
+        secondaryItemBuilder = secondaryItemBuilder ?? itemBuilder,
+        super(
           key: key,
           duration: animationDuration,
           curve: animationCurve,
@@ -74,6 +81,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   Tween<double>? _itemSpacing;
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
+  List<IndexedCard> _indexedCards = const <IndexedCard>[];
 
   @override
   void initState() {
@@ -179,9 +187,6 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           const Radius.circular(double.maxFinite),
         );
 
-        final secondaryItemBuilder =
-            widget.secondaryItemBuilder ?? widget.itemBuilder;
-
         if (_shouldUpdateScrollPosition) {
           _shouldUpdateScrollPosition = false;
 
@@ -196,55 +201,12 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
               .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
         }
 
-        final cards = [
-          if (_index > 0)
-            _buildCard(
-              index: _index - 1,
-              builder: secondaryItemBuilder,
-              itemSpacing: itemSpacing,
-              clipBorderRadius: clipBorderRadius,
-              width: w,
-              height: h,
-            ),
-          if (widget.itemCount > 0)
-            _buildCard(
-              index: _index,
-              builder: widget.itemBuilder,
-              itemSpacing: itemSpacing,
-              clipBorderRadius: clipBorderRadius,
-              width: w,
-              height: h,
-            ),
-          if (_index < widget.itemCount - 1)
-            _buildCard(
-              index: _index + 1,
-              builder: secondaryItemBuilder,
-              itemSpacing: itemSpacing,
-              clipBorderRadius: clipBorderRadius,
-              width: w,
-              height: h,
-            ),
-        ];
-
-        final rowOrColumnChild = isVerticalScroll
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ...cards,
-                  SizedBox(
-                    height: _chipSize,
-                  )
-                ],
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ...cards,
-                  SizedBox(
-                    width: _chipSize,
-                  )
-                ],
-              );
+        _indexedCards = _buildVisibleCards(
+          itemSpacing: itemSpacing,
+          clipBorderRadius: clipBorderRadius,
+          width: w,
+          height: h,
+        );
 
         final fraction = itemSpacing * .5;
         final singleScrollChild = Padding(
@@ -254,10 +216,16 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
             left: isVerticalScroll ? .0 : fraction,
             right: isVerticalScroll ? .0 : fraction,
           ),
-          child: rowOrColumnChild,
+          child: CardSequence(
+            direction:
+                isVerticalScroll ? Direction.vertical : Direction.horizontal,
+            children: _indexedCards.map((it) => it.widget),
+            chipSize: _chipSize,
+            cardSize: Size(w, h),
+          ),
         );
         final scrollable = ScrollConfiguration(
-          behavior: const NoOverscrollBehavior(),
+          behavior: const _NoOverscrollBehavior(),
           child: SingleChildScrollView(
             physics: widget.disableGestures
                 ? const NeverScrollableScrollPhysics()
@@ -279,23 +247,67 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         );
       };
 
-  Widget _buildCard({
-    required int index,
-    required IndexedWidgetBuilder builder,
+  List<IndexedCard> _buildVisibleCards({
     required double itemSpacing,
     required BorderRadius clipBorderRadius,
     double? width,
     double? height,
   }) =>
-      CardViewChild(
-        key: ValueKey(index),
-        child: builder(context, index),
-        width: width,
-        height: height,
-        isVerticalScroll: isVerticalScroll,
-        clipBorderRadius: clipBorderRadius,
-        itemSpacing: itemSpacing,
-        shouldDispose: false,
+      [
+        if (_index > 0)
+          _buildCard(
+            index: _index - 1,
+            builder: widget.secondaryItemBuilder,
+            itemSpacing: itemSpacing,
+            borderBuilder: widget.borderBuilder,
+            clipBorderRadius: clipBorderRadius,
+            width: width,
+            height: height,
+          ),
+        if (widget.itemCount > 0)
+          _buildCard(
+            index: _index,
+            builder: widget.itemBuilder,
+            itemSpacing: itemSpacing,
+            borderBuilder: widget.borderBuilder,
+            clipBorderRadius: clipBorderRadius,
+            width: width,
+            height: height,
+          ),
+        if (_index < widget.itemCount - 1)
+          _buildCard(
+            index: _index + 1,
+            builder: widget.secondaryItemBuilder,
+            itemSpacing: itemSpacing,
+            borderBuilder: widget.borderBuilder,
+            clipBorderRadius: clipBorderRadius,
+            width: width,
+            height: height,
+          ),
+      ];
+
+  IndexedCard _buildCard({
+    required int index,
+    required IndexedWidgetBuilder builder,
+    required double itemSpacing,
+    required BorderRadius clipBorderRadius,
+    required BoxBorderBuilder borderBuilder,
+    double? width,
+    double? height,
+  }) =>
+      IndexedCard(
+        index: index,
+        widget: CardViewChild(
+          key: ValueKey(index),
+          child: builder(context, index),
+          width: width,
+          height: height,
+          isVerticalScroll: isVerticalScroll,
+          border: borderBuilder(index),
+          clipBorderRadius: clipBorderRadius,
+          itemSpacing: itemSpacing,
+          shouldDispose: false,
+        ),
       );
 
   void _onControllerChanged() {
@@ -379,8 +391,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
       };
 }
 
-class NoOverscrollBehavior extends ScrollBehavior {
-  const NoOverscrollBehavior();
+class _NoOverscrollBehavior extends ScrollBehavior {
+  const _NoOverscrollBehavior();
 
   @override
   Widget buildViewportChrome(
