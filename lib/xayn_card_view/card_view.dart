@@ -71,12 +71,12 @@ class CardView extends ImplicitlyAnimatedWidget {
 
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
-  bool _isAbsorbingPointer = false;
   int _index = 0;
   double _oldOffset = .0;
   double _chipSize = .0;
   bool _shouldUpdateScrollPosition = false;
   bool _didStartDragging = false;
+  bool _isDragActive = false;
 
   bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
 
@@ -85,6 +85,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
   List<IndexedCard> _indexedCards = const <IndexedCard>[];
+  VoidCallback? _runPrematureAnimationStop;
 
   @override
   void initState() {
@@ -233,14 +234,11 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           ),
         );
 
-        return AbsorbPointer(
-          absorbing: _isAbsorbingPointer,
-          child: Listener(
-            onPointerDown: _onDragStart,
-            onPointerMove: _onDragUpdate,
-            onPointerUp: _onDragEnd(constraints),
-            child: scrollable,
-          ),
+        return Listener(
+          onPointerDown: _onDragStart,
+          onPointerMove: _onDragUpdate,
+          onPointerUp: _onDragEnd(constraints),
+          child: scrollable,
         );
       };
 
@@ -334,7 +332,10 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   void _onDragStart(PointerDownEvent? event) {
     if (widget.disableGestures) return;
 
-    _didStartDragging = true;
+    _runPrematureAnimationStop?.call();
+
+    _runPrematureAnimationStop = null;
+    _didStartDragging = _isDragActive = true;
     _oldOffset = _scrollController!.offset;
   }
 
@@ -351,6 +352,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
       (PointerUpEvent? event) {
         if (widget.disableGestures) return;
 
+        _isDragActive = false;
+
         final size = _size?.evaluate(animation) ?? widget.size;
         final fullSize =
             isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
@@ -366,13 +369,17 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           pageOffset--;
         }
 
-        setState(() => _isAbsorbingPointer = true);
-
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
         final animationFactor =
             (animationOffset - _scrollController!.position.pixels).abs() /
                 fullSize;
+
+        _runPrematureAnimationStop = () => _runPostAnimation(
+              fullSize: fullSize,
+              pageOffset: pageOffset,
+              applyScrollJump: false,
+            );
 
         _scrollController!
             .animateTo(
@@ -381,32 +388,42 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
               curve: widget.animateToSnapCurve,
             )
             .whenComplete(
-              () => setState(
-                () => _runPostAnimation(
-                  fullSize: fullSize,
-                  pageOffset: pageOffset,
-                ),
+              () => _runPostAnimation(
+                fullSize: fullSize,
+                pageOffset: pageOffset,
+                applyScrollJump: true,
               ),
             );
       };
 
-  void _runPostAnimation({required int pageOffset, required double fullSize}) {
-    _index += pageOffset;
-    _isAbsorbingPointer = false;
+  void _runPostAnimation({
+    required int pageOffset,
+    required double fullSize,
+    required bool applyScrollJump,
+  }) {
+    if (_isDragActive) return;
 
-    widget.controller?.index = _index;
+    _runPrematureAnimationStop = null;
 
-    final jumpToOffset = _index > 0 ? _chipSize : .0;
+    setState(() {
+      _index += pageOffset;
 
-    _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+      widget.controller?.index = _index;
 
-    if (pageOffset != 0) {
-      widget.onIndexChanged?.call(_index);
-    }
+      if (applyScrollJump) {
+        final jumpToOffset = _index > 0 ? _chipSize : .0;
 
-    if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
-      widget.onFinalIndex?.call();
-    }
+        _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+      }
+
+      if (pageOffset != 0) {
+        widget.onIndexChanged?.call(_index);
+      }
+
+      if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
+        widget.onFinalIndex?.call();
+      }
+    });
   }
 }
 
