@@ -370,10 +370,13 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
+        final animationFactor =
+            (animationOffset - _scrollController!.position.pixels).abs() /
+                fullSize;
 
         await _scrollController!.animateTo(
           animationOffset,
-          duration: widget.animateToSnapDuration,
+          duration: widget.animateToSnapDuration * animationFactor,
           curve: widget.animateToSnapCurve,
         );
 
