@@ -375,11 +375,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
             (animationOffset - _scrollController!.position.pixels).abs() /
                 fullSize;
 
-        _runPrematureAnimationStop = () => _runPostAnimation(
-              fullSize: fullSize,
-              pageOffset: pageOffset,
-              applyScrollJump: false,
-            );
+        _runPrematureAnimationStop = () => _index += pageOffset;
 
         _scrollController!
             .animateTo(
@@ -391,7 +387,6 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
               () => _runPostAnimation(
                 fullSize: fullSize,
                 pageOffset: pageOffset,
-                applyScrollJump: true,
               ),
             );
       };
@@ -399,7 +394,6 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   void _runPostAnimation({
     required int pageOffset,
     required double fullSize,
-    required bool applyScrollJump,
   }) {
     if (_isDragActive) return;
 
@@ -410,11 +404,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
       widget.controller?.index = _index;
 
-      if (applyScrollJump) {
-        final jumpToOffset = _index > 0 ? _chipSize : .0;
+      final jumpToOffset = _index > 0 ? _chipSize : .0;
 
-        _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
-      }
+      _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
 
       if (pageOffset != 0) {
         widget.onIndexChanged?.call(_index);
