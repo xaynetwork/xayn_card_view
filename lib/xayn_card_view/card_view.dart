@@ -71,7 +71,6 @@ class CardView extends ImplicitlyAnimatedWidget {
 
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
-  bool _isAbsorbingPointer = false;
   int _index = 0;
   double _oldOffset = .0;
   double _chipSize = .0;
@@ -233,14 +232,11 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           ),
         );
 
-        return AbsorbPointer(
-          absorbing: _isAbsorbingPointer,
-          child: Listener(
-            onPointerDown: _onDragStart,
-            onPointerMove: _onDragUpdate,
-            onPointerUp: _onDragEnd(constraints),
-            child: scrollable,
-          ),
+        return Listener(
+          onPointerDown: _onDragStart,
+          onPointerMove: _onDragUpdate,
+          onPointerUp: _onDragEnd(constraints),
+          child: scrollable,
         );
       };
 
@@ -366,40 +362,45 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           pageOffset--;
         }
 
-        setState(() => _isAbsorbingPointer = true);
-
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
         final animationFactor =
             (animationOffset - _scrollController!.position.pixels).abs() /
                 fullSize;
 
-        await _scrollController!.animateTo(
-          animationOffset,
-          duration: widget.animateToSnapDuration * animationFactor,
-          curve: widget.animateToSnapCurve,
-        );
-
-        setState(() {
-          _index += pageOffset;
-          _isAbsorbingPointer = false;
-
-          widget.controller?.index = _index;
-
-          final jumpToOffset = _index > 0 ? _chipSize : .0;
-
-          _scrollController!
-              .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
-
-          if (pageOffset != 0) {
-            widget.onIndexChanged?.call(_index);
-          }
-
-          if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
-            widget.onFinalIndex?.call();
-          }
-        });
+        _scrollController!
+            .animateTo(
+              animationOffset,
+              duration: widget.animateToSnapDuration * animationFactor,
+              curve: widget.animateToSnapCurve,
+            )
+            .whenComplete(
+              () => setState(
+                () => _runPostAnimation(
+                  fullSize: fullSize,
+                  pageOffset: pageOffset,
+                ),
+              ),
+            );
       };
+
+  void _runPostAnimation({required int pageOffset, required double fullSize}) {
+    _index += pageOffset;
+
+    widget.controller?.index = _index;
+
+    final jumpToOffset = _index > 0 ? _chipSize : .0;
+
+    _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+
+    if (pageOffset != 0) {
+      widget.onIndexChanged?.call(_index);
+    }
+
+    if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
+      widget.onFinalIndex?.call();
+    }
+  }
 }
 
 class _NoOverscrollBehavior extends ScrollBehavior {
