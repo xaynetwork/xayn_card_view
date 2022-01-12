@@ -4,15 +4,16 @@ import 'package:xayn_card_view/xayn_card_view/card_view_child.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 import 'package:xayn_card_view/xayn_card_view/indexed_card.dart';
 
-const double kCardSizeFraction = .9;
-const double kItemSpacing = 12.0;
-const Duration kAnimateToSnapDuration = Duration(milliseconds: 260);
-const Axis kScrollDirection = Axis.vertical;
-const BorderRadius kClipBorderRadius = BorderRadius.all(
+const double _kCardSizeFraction = .9;
+const double _kItemSpacing = 12.0;
+const Duration _kAnimateToSnapDuration = Duration(milliseconds: 500);
+const Curve _kAnimateToSnapCurve = Curves.linearToEaseOut;
+const Axis _kScrollDirection = Axis.vertical;
+const BorderRadius _kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
 );
-const double kDeltaThreshold = 50.0;
-const EdgeInsets kPadding = EdgeInsets.zero;
+const double _kDeltaThreshold = 50.0;
+const EdgeInsets _kPadding = EdgeInsets.zero;
 
 typedef IndexChangedCallback = void Function(int index);
 typedef BoxBorderBuilder = BoxBorder? Function(int index);
@@ -27,6 +28,7 @@ class CardView extends ImplicitlyAnimatedWidget {
   final BoxBorderBuilder borderBuilder;
   final BorderRadius clipBorderRadius;
   final Duration animateToSnapDuration;
+  final Curve animateToSnapCurve;
   final Axis scrollDirection;
   final double deltaThreshold;
   final VoidCallback? onFinalIndex;
@@ -42,16 +44,17 @@ class CardView extends ImplicitlyAnimatedWidget {
     Curve animationCurve = Curves.linear,
     IndexedWidgetBuilder? secondaryItemBuilder,
     this.controller,
-    this.size = kCardSizeFraction,
-    this.itemSpacing = kItemSpacing,
+    this.size = _kCardSizeFraction,
+    this.itemSpacing = _kItemSpacing,
     BoxBorderBuilder? borderBuilder,
-    this.clipBorderRadius = kClipBorderRadius,
-    this.animateToSnapDuration = kAnimateToSnapDuration,
-    this.scrollDirection = kScrollDirection,
-    this.deltaThreshold = kDeltaThreshold,
+    this.clipBorderRadius = _kClipBorderRadius,
+    this.animateToSnapDuration = _kAnimateToSnapDuration,
+    this.animateToSnapCurve = _kAnimateToSnapCurve,
+    this.scrollDirection = _kScrollDirection,
+    this.deltaThreshold = _kDeltaThreshold,
     this.onFinalIndex,
     this.onIndexChanged,
-    this.padding = kPadding,
+    this.padding = _kPadding,
     this.disableGestures = false,
   })  : borderBuilder = borderBuilder ?? ((_) => null),
         secondaryItemBuilder = secondaryItemBuilder ?? itemBuilder,
@@ -366,7 +369,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         await _scrollController.animateTo(
           animationOffset,
           duration: widget.animateToSnapDuration,
-          curve: Curves.easeOut,
+          curve: widget.animateToSnapCurve,
         );
 
         setState(() {
