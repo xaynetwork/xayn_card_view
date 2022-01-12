@@ -70,7 +70,7 @@ class CardView extends ImplicitlyAnimatedWidget {
 }
 
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
-  late final ScrollController _scrollController;
+  ScrollController? _scrollController;
   bool _isAbsorbingPointer = false;
   int _index = 0;
   double _oldOffset = .0;
@@ -100,8 +100,6 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
       controller.addListener(_onControllerChanged);
     }
 
-    _scrollController = ScrollController(keepScrollOffset: false);
-
     widget.onIndexChanged?.call(_index);
 
     super.controller.addListener(() {
@@ -113,7 +111,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   void dispose() {
     super.dispose();
 
-    _scrollController.dispose();
+    _scrollController?.dispose();
 
     widget.controller?.removeListener(_onControllerChanged);
   }
@@ -190,18 +188,14 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           const Radius.circular(double.maxFinite),
         );
 
+        _scrollController ??= ScrollController(
+            keepScrollOffset: false,
+            initialScrollOffset: _calculateScrollOffset(constraints, size));
+
         if (_shouldUpdateScrollPosition) {
           _shouldUpdateScrollPosition = false;
 
-          final fullSize =
-              isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
-
-          _chipSize = ((1.0 - size) * fullSize).clamp(.0, fullSize);
-
-          final jumpToOffset = _index > 0 ? _chipSize : .0;
-
-          _scrollController
-              .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
+          _scrollController?.jumpTo(_calculateScrollOffset(constraints, size));
         }
 
         _indexedCards = _buildVisibleCards(
@@ -249,6 +243,17 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           ),
         );
       };
+
+  double _calculateScrollOffset(BoxConstraints constraints, double size) {
+    final fullSize =
+        isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+
+    _chipSize = ((1.0 - size) * fullSize).clamp(.0, fullSize);
+
+    final jumpToOffset = _index > 0 ? _chipSize : .0;
+
+    return _index.clamp(0, 1) * fullSize - jumpToOffset;
+  }
 
   List<IndexedCard> _buildVisibleCards({
     required double itemSpacing,
@@ -330,7 +335,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     if (widget.disableGestures) return;
 
     _didStartDragging = true;
-    _oldOffset = _scrollController.offset;
+    _oldOffset = _scrollController!.offset;
   }
 
   void _onDragUpdate(PointerMoveEvent? event) {
@@ -338,7 +343,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
     if (!_didStartDragging) {
       _didStartDragging = true;
-      _oldOffset = _scrollController.offset;
+      _oldOffset = _scrollController!.offset;
     }
   }
 
@@ -352,7 +357,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
         _chipSize = (1.0 - size) * fullSize;
 
-        final delta = _scrollController.offset - _oldOffset;
+        final delta = _scrollController!.offset - _oldOffset;
         int pageOffset = 0;
 
         if (delta > widget.deltaThreshold && _index < widget.itemCount - 1) {
@@ -366,7 +371,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
 
-        await _scrollController.animateTo(
+        await _scrollController!.animateTo(
           animationOffset,
           duration: widget.animateToSnapDuration,
           curve: widget.animateToSnapCurve,
@@ -380,7 +385,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
           final jumpToOffset = _index > 0 ? _chipSize : .0;
 
-          _scrollController
+          _scrollController!
               .jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
 
           if (pageOffset != 0) {
