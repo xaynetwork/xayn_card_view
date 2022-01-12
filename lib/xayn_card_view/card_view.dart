@@ -71,6 +71,7 @@ class CardView extends ImplicitlyAnimatedWidget {
 
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
+  bool _isAbsorbingPointer = false;
   int _index = 0;
   double _oldOffset = .0;
   double _chipSize = .0;
@@ -232,11 +233,14 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           ),
         );
 
-        return Listener(
-          onPointerDown: _onDragStart,
-          onPointerMove: _onDragUpdate,
-          onPointerUp: _onDragEnd(constraints),
-          child: scrollable,
+        return AbsorbPointer(
+          absorbing: _isAbsorbingPointer,
+          child: Listener(
+            onPointerDown: _onDragStart,
+            onPointerMove: _onDragUpdate,
+            onPointerUp: _onDragEnd(constraints),
+            child: scrollable,
+          ),
         );
       };
 
@@ -344,7 +348,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   }
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
-      (PointerUpEvent? event) async {
+      (PointerUpEvent? event) {
         if (widget.disableGestures) return;
 
         final size = _size?.evaluate(animation) ?? widget.size;
@@ -361,6 +365,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         } else if (delta < -widget.deltaThreshold && _index > 0) {
           pageOffset--;
         }
+
+        setState(() => _isAbsorbingPointer = true);
 
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
@@ -386,6 +392,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
   void _runPostAnimation({required int pageOffset, required double fullSize}) {
     _index += pageOffset;
+    _isAbsorbingPointer = false;
 
     widget.controller?.index = _index;
 
