@@ -72,7 +72,10 @@ class CardView extends ImplicitlyAnimatedWidget {
 class CardViewState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
   int _index = 0;
+  int _pendingPageOffset = 0;
+  int _dragStartCounter = 0;
   double _oldOffset = .0;
+  double _realOffset = .0;
   double _chipSize = .0;
   bool _shouldUpdateScrollPosition = false;
   bool _didStartDragging = false;
@@ -85,7 +88,6 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
   List<IndexedCard> _indexedCards = const <IndexedCard>[];
-  VoidCallback? _runPrematureAnimationStop;
 
   @override
   void initState() {
@@ -235,8 +237,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         );
 
         return Listener(
-          onPointerDown: _onDragStart,
-          onPointerMove: _onDragUpdate,
+          onPointerDown: _onDragStart(constraints),
+          onPointerMove: _onDragUpdate(constraints),
           onPointerUp: _onDragEnd(constraints),
           child: scrollable,
         );
@@ -329,27 +331,47 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     }
   }
 
-  void _onDragStart(PointerDownEvent? event) {
-    if (widget.disableGestures) return;
+  void Function(PointerDownEvent?) _onDragStart(BoxConstraints constraints) =>
+      (PointerDownEvent? event) {
+        if (widget.disableGestures) return;
 
-    _runPrematureAnimationStop?.call();
+        _dragStartCounter++;
 
-    _runPrematureAnimationStop = null;
-    _didStartDragging = _isDragActive = true;
-    _oldOffset = _scrollController!.offset;
-  }
+        final size = _size?.evaluate(animation) ?? widget.size;
+        final fullSize =
+            isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
 
-  void _onDragUpdate(PointerMoveEvent? event) {
-    if (widget.disableGestures) return;
+        _chipSize = (1.0 - size) * fullSize;
 
-    if (!_didStartDragging) {
-      _didStartDragging = true;
-      _oldOffset = _scrollController!.offset;
-    }
-  }
+        final normalizedOffset = _index == 0 ? .0 : fullSize - _chipSize;
+
+        _didStartDragging = _isDragActive = true;
+        _oldOffset = normalizedOffset;
+        _realOffset = _scrollController!.offset;
+      };
+
+  void Function(PointerMoveEvent?) _onDragUpdate(BoxConstraints constraints) =>
+      (PointerMoveEvent? event) {
+        if (widget.disableGestures) return;
+
+        if (!_didStartDragging) {
+          _dragStartCounter++;
+
+          final size = _size?.evaluate(animation) ?? widget.size;
+          final fullSize =
+              isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+
+          _chipSize = (1.0 - size) * fullSize;
+
+          final normalizedOffset = _index == 0 ? .0 : fullSize - _chipSize;
+
+          _didStartDragging = true;
+          _oldOffset = normalizedOffset;
+        }
+      };
 
   void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
-      (PointerUpEvent? event) {
+      (PointerUpEvent? event) async {
         if (widget.disableGestures) return;
 
         _isDragActive = false;
@@ -360,8 +382,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
         _chipSize = (1.0 - size) * fullSize;
 
-        final delta = _scrollController!.offset - _oldOffset;
-        int pageOffset = 0;
+        final delta = _scrollController!.offset - _realOffset;
+        int pageOffset = _pendingPageOffset;
 
         if (delta > widget.deltaThreshold && _index < widget.itemCount - 1) {
           pageOffset++;
@@ -374,21 +396,22 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         final animationFactor =
             (animationOffset - _scrollController!.position.pixels).abs() /
                 fullSize;
+        final currentDragCounter = _dragStartCounter;
 
-        _runPrematureAnimationStop = () => _index += pageOffset;
+        _pendingPageOffset = pageOffset;
 
-        _scrollController!
-            .animateTo(
-              animationOffset,
-              duration: widget.animateToSnapDuration * animationFactor,
-              curve: widget.animateToSnapCurve,
-            )
-            .whenComplete(
-              () => _runPostAnimation(
-                fullSize: fullSize,
-                pageOffset: pageOffset,
-              ),
-            );
+        await _scrollController!.animateTo(
+          animationOffset,
+          duration: widget.animateToSnapDuration * animationFactor,
+          curve: widget.animateToSnapCurve,
+        );
+
+        if (currentDragCounter == _dragStartCounter) {
+          _runPostAnimation(
+            fullSize: fullSize,
+            pageOffset: pageOffset,
+          );
+        }
       };
 
   void _runPostAnimation({
@@ -397,10 +420,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   }) {
     if (_isDragActive) return;
 
-    _runPrematureAnimationStop = null;
-
     setState(() {
       _index += pageOffset;
+      _pendingPageOffset = 0;
 
       widget.controller?.index = _index;
 
