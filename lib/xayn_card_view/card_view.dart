@@ -98,7 +98,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     if (controller != null) {
       assert(controller.index < widget.itemCount,
           'Controller index is out of bound. index should be less than itemCount.');
-      _index = controller.index;
+      _updateIndex(controller.index);
 
       controller.addListener(_onControllerChanged);
     }
@@ -146,7 +146,8 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.itemCount != widget.itemCount) {
-      _index = widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0;
+      _updateIndex(
+          widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0);
 
       widget.controller?.index = _index;
     }
@@ -325,7 +326,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
       setState(() {
         assert(controller.index < widget.itemCount,
             'Controller index is out of bound. index should be less than itemCount.');
-        _index = controller.index;
+        _updateIndex(controller.index);
         widget.onIndexChanged?.call(_index);
       });
     }
@@ -438,6 +439,14 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         widget.onFinalIndex?.call();
       }
     });
+  }
+
+  void _updateIndex(int nextIndex) {
+    _index = nextIndex;
+
+    if (widget.itemCount > 0 && nextIndex == widget.itemCount - 1) {
+      widget.onFinalIndex?.call();
+    }
   }
 }
 
