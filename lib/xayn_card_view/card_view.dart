@@ -2,7 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:xayn_card_view/xayn_card_view/card_sequence.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_child.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
+import 'package:xayn_card_view/xayn_card_view/card_view_listeners_mixin.dart';
 import 'package:xayn_card_view/xayn_card_view/indexed_card.dart';
+import 'package:xayn_card_view/xayn_card_view/no_overscroll_behavior.dart';
 
 const double _kCardSizeFraction = .9;
 const double _kItemSpacing = 12.0;
@@ -41,12 +43,9 @@ class CardView extends ImplicitlyAnimatedWidget {
     required this.itemCount,
     required this.itemBuilder,
     required Duration animationDuration,
-    Curve animationCurve = Curves.linear,
-    IndexedWidgetBuilder? secondaryItemBuilder,
     this.controller,
     this.size = _kCardSizeFraction,
     this.itemSpacing = _kItemSpacing,
-    BoxBorderBuilder? borderBuilder,
     this.clipBorderRadius = _kClipBorderRadius,
     this.animateToSnapDuration = _kAnimateToSnapDuration,
     this.animateToSnapCurve = _kAnimateToSnapCurve,
@@ -56,6 +55,9 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.onIndexChanged,
     this.padding = _kPadding,
     this.disableGestures = false,
+    Curve animationCurve = Curves.linear,
+    IndexedWidgetBuilder? secondaryItemBuilder,
+    BoxBorderBuilder? borderBuilder,
   })  : borderBuilder = borderBuilder ?? ((_) => null),
         secondaryItemBuilder = secondaryItemBuilder ?? itemBuilder,
         super(
@@ -66,58 +68,37 @@ class CardView extends ImplicitlyAnimatedWidget {
 
   @override
   ImplicitlyAnimatedWidgetState<ImplicitlyAnimatedWidget> createState() =>
-      CardViewState();
+      _CardViewState();
 }
 
-class CardViewState extends AnimatedWidgetBaseState<CardView> {
+@protected
+abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
-  int _index = 0;
-  int _pendingPageOffset = 0;
-  int _dragStartCounter = 0;
-  double _oldOffset = .0;
-  double _realOffset = .0;
-  double _chipSize = .0;
-  bool _shouldUpdateScrollPosition = false;
-  bool _didStartDragging = false;
-  bool _isDragActive = false;
 
-  bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
+  @protected
+  int index = 0;
 
   Tween<double>? _size;
   Tween<double>? _itemSpacing;
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
-  List<IndexedCard> _indexedCards = const <IndexedCard>[];
 
-  @override
-  void initState() {
-    super.initState();
+  @protected
+  ScrollController? get scrollController => _scrollController;
 
-    final controller = widget.controller;
+  @protected
+  double get currentSize => _size?.evaluate(animation) ?? widget.size;
 
-    if (controller != null) {
-      assert(controller.index < widget.itemCount,
-          'Controller index is out of bound. index should be less than itemCount.');
-      _updateIndex(controller.index);
+  @protected
+  double get itemSpacing =>
+      _itemSpacing?.evaluate(animation) ?? widget.itemSpacing;
 
-      controller.addListener(_onControllerChanged);
-    }
+  @protected
+  EdgeInsets get padding => _padding?.evaluate(animation) ?? widget.padding;
 
-    widget.onIndexChanged?.call(_index);
-
-    super.controller.addListener(() {
-      _shouldUpdateScrollPosition = true;
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    _scrollController?.dispose();
-
-    widget.controller?.removeListener(_onControllerChanged);
-  }
+  @protected
+  BorderRadius get clipBorderRadius =>
+      _clipBorderRadius?.evaluate(animation) ?? widget.clipBorderRadius;
 
   @override
   void forEachTween(TweenVisitor<dynamic> visitor) {
@@ -140,6 +121,41 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
                 Tween<BorderRadius>(begin: value as BorderRadius))
         as Tween<BorderRadius>?;
   }
+}
+
+class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
+  bool _shouldUpdateScrollPosition = false;
+  List<IndexedCard> _indexedCards = const <IndexedCard>[];
+
+  @override
+  void initState() {
+    super.initState();
+
+    final controller = widget.controller;
+
+    if (controller != null) {
+      assert(controller.index < widget.itemCount,
+          'Controller index is out of bound. index should be less than itemCount.');
+      _updateIndex(controller.index);
+
+      controller.addListener(_onControllerChanged);
+    }
+
+    widget.onIndexChanged?.call(index);
+
+    super.controller.addListener(() {
+      _shouldUpdateScrollPosition = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+
+    _scrollController?.dispose();
+
+    widget.controller?.removeListener(_onControllerChanged);
+  }
 
   @override
   void didUpdateWidget(CardView oldWidget) {
@@ -147,9 +163,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
     if (oldWidget.itemCount != widget.itemCount) {
       _updateIndex(
-          widget.itemCount > 0 ? _index.clamp(0, widget.itemCount - 1) : 0);
+          widget.itemCount > 0 ? index.clamp(0, widget.itemCount - 1) : 0);
 
-      widget.controller?.index = _index;
+      widget.controller?.index = index;
     }
 
     if (oldWidget.scrollDirection != widget.scrollDirection ||
@@ -159,38 +175,30 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final padding = (_padding?.evaluate(animation) ?? widget.padding).clamp(
-      EdgeInsets.zero,
-      const EdgeInsets.all(double.maxFinite),
-    );
-    final itemSpacing =
-        (_itemSpacing?.evaluate(animation) ?? widget.itemSpacing).clamp(
-      .0,
-      double.maxFinite,
-    );
-
-    return Padding(
-      padding: padding,
-      child: LayoutBuilder(builder: _buildBody(itemSpacing)),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+        padding: padding.clamp(
+          EdgeInsets.zero,
+          const EdgeInsets.all(double.maxFinite),
+        ),
+        child: LayoutBuilder(
+          builder: _buildBody(
+            itemSpacing.clamp(
+              .0,
+              double.maxFinite,
+            ),
+          ),
+        ),
+      );
 
   Widget Function(BuildContext, BoxConstraints) _buildBody(
           double itemSpacing) =>
       (BuildContext context, BoxConstraints constraints) {
-        final size = _size?.evaluate(animation) ?? widget.size;
+        final size = currentSize;
         final fullSize =
             isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
         final cardSize = size * fullSize;
         final w = isVerticalScroll ? constraints.maxWidth : cardSize;
         final h = isVerticalScroll ? cardSize : constraints.maxHeight;
-        final clipBorderRadius =
-            (_clipBorderRadius?.evaluate(animation) ?? widget.clipBorderRadius)
-                .clamp(
-          Radius.zero,
-          const Radius.circular(double.maxFinite),
-        );
 
         _scrollController ??= ScrollController(
             keepScrollOffset: false,
@@ -204,7 +212,10 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
 
         _indexedCards = _buildVisibleCards(
           itemSpacing: itemSpacing,
-          clipBorderRadius: clipBorderRadius,
+          clipBorderRadius: clipBorderRadius.clamp(
+            Radius.zero,
+            const Radius.circular(double.maxFinite),
+          ),
           width: w,
           height: h,
         );
@@ -221,12 +232,12 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
             direction:
                 isVerticalScroll ? Direction.vertical : Direction.horizontal,
             children: _indexedCards.map((it) => it.widget),
-            chipSize: _chipSize,
+            chipSize: chipSize,
             cardSize: Size(w, h),
           ),
         );
         final scrollable = ScrollConfiguration(
-          behavior: const _NoOverscrollBehavior(),
+          behavior: const NoOverscrollBehavior(),
           child: SingleChildScrollView(
             physics: widget.disableGestures
                 ? const NeverScrollableScrollPhysics()
@@ -238,9 +249,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
         );
 
         return Listener(
-          onPointerDown: _onDragStart(constraints),
-          onPointerMove: _onDragUpdate(constraints),
-          onPointerUp: _onDragEnd(constraints),
+          onPointerDown: onDragStart(constraints),
+          onPointerMove: onDragUpdate(constraints),
+          onPointerUp: onDragEnd(constraints),
           child: scrollable,
         );
       };
@@ -249,11 +260,11 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     final fullSize =
         isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
 
-    _chipSize = ((1.0 - size) * fullSize).clamp(.0, fullSize);
+    chipSize = ((1.0 - size) * fullSize).clamp(.0, fullSize);
 
-    final jumpToOffset = _index > 0 ? _chipSize : .0;
+    final jumpToOffset = index > 0 ? chipSize : .0;
 
-    return _index.clamp(0, 1) * fullSize - jumpToOffset;
+    return index.clamp(0, 1) * fullSize - jumpToOffset;
   }
 
   List<IndexedCard> _buildVisibleCards({
@@ -263,9 +274,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
     double? height,
   }) =>
       [
-        if (_index > 0)
+        if (index > 0)
           _buildCard(
-            index: _index - 1,
+            index: index - 1,
             builder: widget.secondaryItemBuilder,
             itemSpacing: itemSpacing,
             borderBuilder: widget.borderBuilder,
@@ -275,7 +286,7 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
           ),
         if (widget.itemCount > 0)
           _buildCard(
-            index: _index,
+            index: index,
             builder: widget.itemBuilder,
             itemSpacing: itemSpacing,
             borderBuilder: widget.borderBuilder,
@@ -283,9 +294,9 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
             width: width,
             height: height,
           ),
-        if (_index < widget.itemCount - 1)
+        if (index < widget.itemCount - 1)
           _buildCard(
-            index: _index + 1,
+            index: index + 1,
             builder: widget.secondaryItemBuilder,
             itemSpacing: itemSpacing,
             borderBuilder: widget.borderBuilder,
@@ -322,141 +333,24 @@ class CardViewState extends AnimatedWidgetBaseState<CardView> {
   void _onControllerChanged() {
     final controller = widget.controller!;
 
-    if (_index != controller.index) {
+    if (index != controller.index) {
       setState(() {
         assert(controller.index < widget.itemCount,
             'Controller index is out of bound. index should be less than itemCount.');
+
         _updateIndex(controller.index);
-        widget.onIndexChanged?.call(_index);
+
+        widget.onIndexChanged?.call(index);
       });
     }
   }
 
-  void Function(PointerDownEvent?) _onDragStart(BoxConstraints constraints) =>
-      (PointerDownEvent? event) {
-        if (widget.disableGestures) return;
-
-        _dragStartCounter++;
-
-        final size = _size?.evaluate(animation) ?? widget.size;
-        final fullSize =
-            isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
-
-        _chipSize = (1.0 - size) * fullSize;
-
-        final normalizedOffset = _index == 0 ? .0 : fullSize - _chipSize;
-
-        _didStartDragging = _isDragActive = true;
-        _oldOffset = normalizedOffset;
-        _realOffset = _scrollController!.offset;
-      };
-
-  void Function(PointerMoveEvent?) _onDragUpdate(BoxConstraints constraints) =>
-      (PointerMoveEvent? event) {
-        if (widget.disableGestures) return;
-
-        if (!_didStartDragging) {
-          _dragStartCounter++;
-
-          final size = _size?.evaluate(animation) ?? widget.size;
-          final fullSize =
-              isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
-
-          _chipSize = (1.0 - size) * fullSize;
-
-          final normalizedOffset = _index == 0 ? .0 : fullSize - _chipSize;
-
-          _didStartDragging = true;
-          _oldOffset = normalizedOffset;
-        }
-      };
-
-  void Function(PointerUpEvent?) _onDragEnd(BoxConstraints constraints) =>
-      (PointerUpEvent? event) async {
-        if (widget.disableGestures) return;
-
-        _isDragActive = false;
-
-        final size = _size?.evaluate(animation) ?? widget.size;
-        final fullSize =
-            isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
-
-        _chipSize = (1.0 - size) * fullSize;
-
-        final delta = _scrollController!.offset - _realOffset;
-        int pageOffset = _pendingPageOffset;
-
-        if (delta > widget.deltaThreshold && _index < widget.itemCount - 1) {
-          pageOffset++;
-        } else if (delta < -widget.deltaThreshold && _index > 0) {
-          pageOffset--;
-        }
-
-        final animationOffset =
-            _oldOffset + pageOffset * fullSize - pageOffset * _chipSize;
-        final animationFactor =
-            (animationOffset - _scrollController!.position.pixels).abs() /
-                fullSize;
-        final currentDragCounter = _dragStartCounter;
-
-        _pendingPageOffset = pageOffset;
-
-        await _scrollController!.animateTo(
-          animationOffset,
-          duration: widget.animateToSnapDuration * animationFactor,
-          curve: widget.animateToSnapCurve,
-        );
-
-        if (currentDragCounter == _dragStartCounter) {
-          _runPostAnimation(
-            fullSize: fullSize,
-            pageOffset: pageOffset,
-          );
-        }
-      };
-
-  void _runPostAnimation({
-    required int pageOffset,
-    required double fullSize,
-  }) {
-    if (_isDragActive) return;
-
-    setState(() {
-      _index += pageOffset;
-      _pendingPageOffset = 0;
-
-      widget.controller?.index = _index;
-
-      final jumpToOffset = _index > 0 ? _chipSize : .0;
-
-      _scrollController!.jumpTo(_index.clamp(0, 1) * fullSize - jumpToOffset);
-
-      if (pageOffset != 0) {
-        widget.onIndexChanged?.call(_index);
-      }
-
-      if (widget.itemCount > 0 && _index == widget.itemCount - 1) {
-        widget.onFinalIndex?.call();
-      }
-    });
-  }
-
   void _updateIndex(int nextIndex) {
-    _index = nextIndex;
+    index = nextIndex;
 
     if (widget.itemCount > 0 && nextIndex == widget.itemCount - 1) {
       widget.onFinalIndex?.call();
     }
-  }
-}
-
-class _NoOverscrollBehavior extends ScrollBehavior {
-  const _NoOverscrollBehavior();
-
-  @override
-  Widget buildViewportChrome(
-      BuildContext context, Widget child, AxisDirection axisDirection) {
-    return child;
   }
 }
 
