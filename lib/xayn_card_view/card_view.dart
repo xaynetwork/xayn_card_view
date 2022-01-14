@@ -3,7 +3,6 @@ import 'package:xayn_card_view/xayn_card_view/card_sequence.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_child.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_controller.dart';
 import 'package:xayn_card_view/xayn_card_view/card_view_listeners_mixin.dart';
-import 'package:xayn_card_view/xayn_card_view/indexed_card.dart';
 import 'package:xayn_card_view/xayn_card_view/no_overscroll_behavior.dart';
 
 const double _kCardSizeFraction = .9;
@@ -19,6 +18,7 @@ const EdgeInsets _kPadding = EdgeInsets.zero;
 
 typedef IndexChangedCallback = void Function(int index);
 typedef BoxBorderBuilder = BoxBorder? Function(int index);
+typedef CardIdentifierBuilder = String Function(int index);
 
 class CardView extends ImplicitlyAnimatedWidget {
   final int itemCount;
@@ -35,6 +35,7 @@ class CardView extends ImplicitlyAnimatedWidget {
   final double deltaThreshold;
   final VoidCallback? onFinalIndex;
   final IndexChangedCallback? onIndexChanged;
+  final CardIdentifierBuilder? cardIdentifierBuilder;
   final EdgeInsets padding;
   final bool disableGestures;
 
@@ -55,6 +56,7 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.onIndexChanged,
     this.padding = _kPadding,
     this.disableGestures = false,
+    this.cardIdentifierBuilder,
     Curve animationCurve = Curves.linear,
     IndexedWidgetBuilder? secondaryItemBuilder,
     BoxBorderBuilder? borderBuilder,
@@ -125,7 +127,7 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
 
 class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
   bool _shouldUpdateScrollPosition = false;
-  List<IndexedCard> _indexedCards = const <IndexedCard>[];
+  List<Widget> _indexedCards = const <Widget>[];
 
   @override
   void initState() {
@@ -231,7 +233,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           child: CardSequence(
             direction:
                 isVerticalScroll ? Direction.vertical : Direction.horizontal,
-            children: _indexedCards.map((it) => it.widget),
+            children: _indexedCards,
             chipSize: chipSize,
             cardSize: Size(w, h),
           ),
@@ -267,7 +269,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     return index.clamp(0, 1) * fullSize - jumpToOffset;
   }
 
-  List<IndexedCard> _buildVisibleCards({
+  List<Widget> _buildVisibleCards({
     required double itemSpacing,
     required BorderRadius clipBorderRadius,
     double? width,
@@ -306,7 +308,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           ),
       ];
 
-  IndexedCard _buildCard({
+  Widget _buildCard({
     required int index,
     required IndexedWidgetBuilder builder,
     required double itemSpacing,
@@ -314,21 +316,24 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     required BoxBorderBuilder borderBuilder,
     double? width,
     double? height,
-  }) =>
-      IndexedCard(
-        index: index,
-        widget: CardViewChild(
-          key: ValueKey(index),
-          child: builder(context, index),
-          width: width,
-          height: height,
-          isVerticalScroll: isVerticalScroll,
-          border: borderBuilder(index),
-          clipBorderRadius: clipBorderRadius,
-          itemSpacing: itemSpacing,
-          shouldDispose: false,
-        ),
-      );
+  }) {
+    final cardIdentifierBuilder = widget.cardIdentifierBuilder;
+    final key = cardIdentifierBuilder != null
+        ? Key(cardIdentifierBuilder(index))
+        : ValueKey(index);
+
+    return CardViewChild(
+      key: key,
+      child: builder(context, index),
+      width: width,
+      height: height,
+      isVerticalScroll: isVerticalScroll,
+      border: borderBuilder(index),
+      clipBorderRadius: clipBorderRadius,
+      itemSpacing: itemSpacing,
+      shouldDispose: false,
+    );
+  }
 
   void _onControllerChanged() {
     final controller = widget.controller!;
