@@ -346,10 +346,16 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
   }
 
   void _updateIndex(int nextIndex) {
+    if (nextIndex == index) return;
+
     index = nextIndex;
 
     if (widget.itemCount > 0 && nextIndex == widget.itemCount - 1) {
       widget.onFinalIndex?.call();
+    }
+
+    if (index == 0 && _scrollController?.hasClients == true) {
+      _scrollController!.jumpTo(.0);
     }
   }
 }
