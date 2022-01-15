@@ -56,7 +56,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
           pageOffset--;
         }
 
-        pageOffset = pageOffset.clamp(-1, 1);
+        pageOffset = pageOffset.clamp(-1, 2);
 
         final animationOffset =
             _oldOffset + pageOffset * fullSize - pageOffset * chipSize;
