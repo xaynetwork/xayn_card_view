@@ -48109,6 +48109,7 @@ n=h.a
 n.toString
 if(m>50&&h.dy<n.r-1)++l
 else if(m<-50&&h.dy>0)--l
+l=B.h.G(l,-1,1)
 k=h.BM$+l*o-l*h.ji$
 n=B.b.gbp(h.dx.d).cx
 n.toString
