@@ -306,16 +306,6 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
             width: width,
             height: height,
           ),
-        if (index < widget.itemCount - 2)
-          _buildCard(
-            index: index + 2,
-            builder: widget.secondaryItemBuilder,
-            itemSpacing: itemSpacing,
-            borderBuilder: widget.borderBuilder,
-            clipBorderRadius: clipBorderRadius,
-            width: width,
-            height: height,
-          ),
       ];
 
   Widget _buildCard({

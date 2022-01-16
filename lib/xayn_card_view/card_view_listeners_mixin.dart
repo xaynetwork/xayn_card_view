@@ -7,8 +7,6 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   double chipSize = .0;
 
   int _dragStartCounter = 0;
-  int _pendingPageOffset = 0;
-  double _oldOffset = .0;
   double _realOffset = .0;
   bool _didStartDragging = false;
   bool _isDragActive = false;
@@ -48,7 +46,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
         chipSize = (1.0 - size) * fullSize;
 
         final delta = scrollController!.offset - _realOffset;
-        int pageOffset = _pendingPageOffset;
+        int pageOffset = 0;
 
         if (delta > widget.deltaThreshold && index < widget.itemCount - 1) {
           pageOffset++;
@@ -56,29 +54,33 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
           pageOffset--;
         }
 
-        pageOffset = pageOffset.clamp(-1, 2);
+        pageOffset = pageOffset.clamp(-1, 1);
 
-        final animationOffset =
-            _oldOffset + pageOffset * fullSize - pageOffset * chipSize;
-        final animationFactor =
-            (animationOffset - scrollController!.position.pixels).abs() /
-                fullSize;
         final currentDragCounter = _dragStartCounter;
+        final nextIndex = index + pageOffset;
+        var targetPosition =
+            scrollController!.offset - pageOffset * fullSize + chipSize;
 
-        _pendingPageOffset = pageOffset;
-
-        await scrollController!.animateTo(
-          animationOffset,
-          duration: widget.animateToSnapDuration * animationFactor,
-          curve: widget.animateToSnapCurve,
-        );
+        if ((pageOffset >= 0 && nextIndex <= 1) ||
+            (pageOffset < 0 && nextIndex < 1)) {
+          targetPosition = scrollController!.offset;
+        }
 
         if (currentDragCounter == _dragStartCounter) {
-          _runPostAnimation(
-            fullSize: fullSize,
+          _updateNow(
+            targetPosition: targetPosition,
             pageOffset: pageOffset,
           );
         }
+
+        final jumpOffset = index > 0 ? chipSize : .0;
+        final animationOffset = index.clamp(0, 1) * fullSize - jumpOffset;
+
+        await scrollController!.animateTo(
+          animationOffset,
+          duration: widget.animateToSnapDuration,
+          curve: widget.animateToSnapCurve,
+        );
       };
 
   void _confirmDragging(BoxConstraints constraints) {
@@ -90,28 +92,22 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
 
     chipSize = (1.0 - size) * fullSize;
 
-    final normalizedOffset = index == 0 ? .0 : fullSize - chipSize;
-
     _didStartDragging = _isDragActive = true;
-    _oldOffset = normalizedOffset;
     _realOffset = scrollController!.offset;
   }
 
-  void _runPostAnimation({
+  void _updateNow({
     required int pageOffset,
-    required double fullSize,
+    required double targetPosition,
   }) {
     if (_isDragActive) return;
 
     run() {
       index += pageOffset;
-      _pendingPageOffset = 0;
 
       widget.controller?.index = index;
 
-      final jumpToOffset = index > 0 ? chipSize : .0;
-
-      scrollController!.jumpTo(index.clamp(0, 1) * fullSize - jumpToOffset);
+      scrollController!.jumpTo(targetPosition);
 
       if (pageOffset != 0) {
         widget.onIndexChanged?.call(index);
