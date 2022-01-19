@@ -46,6 +46,9 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
         chipSize = (1.0 - size) * fullSize;
 
         final delta = scrollController!.offset - _realOffset;
+
+        if (delta == .0) return;
+
         int pageOffset = 0;
 
         if (delta > widget.deltaThreshold && index < widget.itemCount - 1) {
@@ -59,7 +62,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
         final currentDragCounter = _dragStartCounter;
         final nextIndex = index + pageOffset;
         var targetPosition =
-            scrollController!.offset - pageOffset * fullSize + chipSize;
+            scrollController!.offset - pageOffset * size * fullSize;
 
         if ((pageOffset >= 0 && nextIndex <= 1) ||
             (pageOffset < 0 && nextIndex < 1)) {
