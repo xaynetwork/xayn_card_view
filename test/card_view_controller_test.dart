@@ -63,5 +63,22 @@ void main() {
       expect(findCardChild(data[startIndex + 2]), findsOneWidget);
       expect(findCardChild(data[startIndex + 3]), findsNothing);
     });
+
+    testWidgets('Jump down', (WidgetTester tester) async {
+      await standaloneWidgetSetup(
+        tester,
+        widget: CardView(
+          animationDuration: const Duration(seconds: 1),
+          controller: _controller,
+          itemCount: data.length,
+          itemBuilder: (context, index) => getCardChild(data[index]),
+        ),
+      );
+      _controller.jump(JumpDirection.down);
+      await tester.pumpAndSettle();
+      expect(findCardChild(data[startIndex + 1]), findsOneWidget);
+      expect(findCardChild(data[startIndex + 2]), findsOneWidget);
+      expect(findCardChild(data[startIndex + 3]), findsNothing);
+    });
   });
 }
