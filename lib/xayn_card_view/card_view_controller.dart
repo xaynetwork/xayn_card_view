@@ -7,6 +7,7 @@ class CardViewController extends ChangeNotifier {
 
   int get index => _index;
 
+  /// Change index immediately, without animation.
   set index(int value) {
     if (_index != value) {
       _index = value;
@@ -17,16 +18,9 @@ class CardViewController extends ChangeNotifier {
 
   int _offset = 0;
 
-  int get offset {
-    final value = _offset;
-
-    _offset = 0;
-
-    return value;
-  }
-
   CardViewController({int startIndex = 0}) : _index = startIndex;
 
+  /// Change index using an animation.
   void jump(JumpDirection direction) {
     switch (direction) {
       case JumpDirection.up:
@@ -38,5 +32,15 @@ class CardViewController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  /// Gets the next requested [jump] offset,
+  /// and then internally resets the jump offset back to 0 (no jump)
+  int getNextOffsetAndReset() {
+    final value = _offset;
+
+    _offset = 0;
+
+    return value;
   }
 }
