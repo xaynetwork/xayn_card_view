@@ -345,7 +345,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
   void _onControllerChanged() {
     final controller = widget.controller!;
-    final offset = controller.offset;
+    final offset = controller.getNextOffsetAndReset();
 
     if (offset != 0) {
       jump(pageOffset: offset);
