@@ -85,6 +85,8 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
 
+  BoxConstraints? get lastKnownConstraints;
+
   @protected
   ScrollController? get scrollController => _scrollController;
 
@@ -128,6 +130,10 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
 class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
   bool _shouldUpdateScrollPosition = false;
   List<Widget> _indexedCards = const <Widget>[];
+  BoxConstraints? _lastKnownConstraints;
+
+  @override
+  BoxConstraints? get lastKnownConstraints => _lastKnownConstraints;
 
   @override
   void initState() {
@@ -201,6 +207,8 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
         final cardSize = size * fullSize;
         final w = isVerticalScroll ? constraints.maxWidth : cardSize;
         final h = isVerticalScroll ? cardSize : constraints.maxHeight;
+
+        _lastKnownConstraints = constraints;
 
         _scrollController ??= ScrollController(
             keepScrollOffset: false,
@@ -337,8 +345,11 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
   void _onControllerChanged() {
     final controller = widget.controller!;
+    final offset = controller.offset;
 
-    if (index != controller.index) {
+    if (offset != 0) {
+      jump(pageOffset: offset);
+    } else if (index != controller.index) {
       setState(() {
         assert(controller.index < widget.itemCount,
             'Controller index is out of bound. index should be less than itemCount.');
