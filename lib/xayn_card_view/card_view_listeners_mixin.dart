@@ -6,7 +6,6 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   @protected
   double chipSize = .0;
 
-  int _dragStartCounter = 0;
   double _realOffset = .0;
   bool _didStartDragging = false;
   bool _isDragActive = false;
@@ -39,11 +38,10 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
 
         _isDragActive = false;
 
-        final size = currentSize;
         final fullSize =
             isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
 
-        chipSize = (1.0 - size) * fullSize;
+        chipSize = (1.0 - currentSize) * fullSize;
 
         final delta = scrollController!.offset - _realOffset;
 
@@ -59,36 +57,41 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
 
         pageOffset = pageOffset.clamp(-1, 1);
 
-        final currentDragCounter = _dragStartCounter;
-        final nextIndex = index + pageOffset;
-        var targetPosition =
-            scrollController!.offset - pageOffset * size * fullSize;
-
-        if ((pageOffset >= 0 && nextIndex <= 1) ||
-            (pageOffset < 0 && nextIndex < 1)) {
-          targetPosition = scrollController!.offset;
-        }
-
-        if (currentDragCounter == _dragStartCounter) {
-          _updateNow(
-            targetPosition: targetPosition,
-            pageOffset: pageOffset,
-          );
-        }
-
-        final jumpOffset = index > 0 ? chipSize : .0;
-        final animationOffset = index.clamp(0, 1) * fullSize - jumpOffset;
-
-        await scrollController!.animateTo(
-          animationOffset,
-          duration: widget.animateToSnapDuration,
-          curve: widget.animateToSnapCurve,
-        );
+        jump(pageOffset: pageOffset);
       };
 
-  void _confirmDragging(BoxConstraints constraints) {
-    _dragStartCounter++;
+  Future<void> jump({required int pageOffset}) async {
+    final constraints = lastKnownConstraints;
 
+    if (constraints == null) return;
+
+    final nextIndex = index + pageOffset;
+    final fullSize =
+        isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
+    var targetPosition =
+        scrollController!.offset - pageOffset * currentSize * fullSize;
+
+    if ((pageOffset >= 0 && nextIndex <= 1) ||
+        (pageOffset < 0 && nextIndex < 1)) {
+      targetPosition = scrollController!.offset;
+    }
+
+    _updateNow(
+      targetPosition: targetPosition,
+      pageOffset: pageOffset,
+    );
+
+    final jumpOffset = index > 0 ? chipSize : .0;
+    final animationOffset = index.clamp(0, 1) * fullSize - jumpOffset;
+
+    await scrollController!.animateTo(
+      animationOffset,
+      duration: widget.animateToSnapDuration,
+      curve: widget.animateToSnapCurve,
+    );
+  }
+
+  void _confirmDragging(BoxConstraints constraints) {
     final size = currentSize;
     final fullSize =
         isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
