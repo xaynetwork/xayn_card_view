@@ -9,11 +9,16 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   double _realOffset = .0;
   bool _didStartDragging = false;
   bool _isDragActive = false;
+  bool _isScrollPosAnimating = false;
 
+  @protected
   bool get isDragActive => _isDragActive;
 
   @protected
   bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
+
+  @protected
+  bool get isScrollPosAnimating => _isScrollPosAnimating;
 
   @protected
   void Function(PointerDownEvent?) onDragStart(BoxConstraints constraints) =>
@@ -87,11 +92,15 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
     final jumpOffset = index > 0 ? chipSize : .0;
     final animationOffset = index.clamp(0, 1) * fullSize - jumpOffset;
 
-    scrollController!.animateTo(
+    _isScrollPosAnimating = true;
+
+    await scrollController!.animateTo(
       animationOffset,
       duration: widget.animateToSnapDuration,
       curve: widget.animateToSnapCurve,
     );
+
+    _isScrollPosAnimating = false;
   }
 
   void _confirmDragging(BoxConstraints constraints) {

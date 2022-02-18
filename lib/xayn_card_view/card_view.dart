@@ -131,7 +131,6 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
 }
 
 class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
-  bool _shouldUpdateScrollPosition = false;
   List<Widget> _indexedCards = const <Widget>[];
   BoxConstraints? _lastKnownConstraints;
 
@@ -154,9 +153,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
     widget.onIndexChanged?.call(index);
 
-    super.controller.addListener(() {
-      _shouldUpdateScrollPosition = true;
-    });
+    super.controller.addListener(_updateScrollPosition);
   }
 
   @override
@@ -165,6 +162,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
     _scrollController?.dispose();
 
+    super.controller.removeListener(_updateScrollPosition);
     widget.controller?.removeListener(_onControllerChanged);
   }
 
@@ -181,7 +179,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
     if (oldWidget.scrollDirection != widget.scrollDirection ||
         oldWidget.size != widget.size) {
-      _shouldUpdateScrollPosition = true;
+      _updateScrollPosition();
     }
   }
 
@@ -216,16 +214,6 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
         final scrollController = _scrollController ??= ScrollController(
             keepScrollOffset: false,
             initialScrollOffset: _calculateScrollOffset(constraints, size));
-
-        if (_shouldUpdateScrollPosition) {
-          final jumpTarget = _calculateScrollOffset(constraints, size);
-
-          _shouldUpdateScrollPosition = false;
-
-          if (!isDragActive && scrollController.offset != jumpTarget) {
-            scrollController.jumpTo(jumpTarget);
-          }
-        }
 
         _indexedCards = _buildVisibleCards(
           itemSpacing: itemSpacing,
@@ -272,6 +260,21 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           child: scrollable,
         );
       };
+
+  void _updateScrollPosition() {
+    final constraints = lastKnownConstraints;
+    final scrollController = _scrollController;
+
+    if (constraints == null || scrollController == null) return;
+
+    final jumpTarget = _calculateScrollOffset(constraints, currentSize);
+
+    if (!isScrollPosAnimating &&
+        !isDragActive &&
+        scrollController.offset != jumpTarget) {
+      scrollController.jumpTo(jumpTarget);
+    }
+  }
 
   double _calculateScrollOffset(BoxConstraints constraints, double size) {
     final fullSize =
