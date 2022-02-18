@@ -10,6 +10,8 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   bool _didStartDragging = false;
   bool _isDragActive = false;
 
+  bool get isDragActive => _isDragActive;
+
   @protected
   bool get isVerticalScroll => widget.scrollDirection == Axis.vertical;
 
@@ -60,11 +62,12 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
         jump(pageOffset: pageOffset);
       };
 
+  @protected
   Future<void> jump({required int pageOffset}) async {
-    final constraints = lastKnownConstraints;
+    assert(lastKnownConstraints != null,
+        'lastKnownConstraints is null, are you calling jump before the Widget is rendered?');
 
-    if (constraints == null) return;
-
+    final constraints = lastKnownConstraints!;
     final nextIndex = index + pageOffset;
     final fullSize =
         isVerticalScroll ? constraints.maxHeight : constraints.maxWidth;
@@ -84,7 +87,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
     final jumpOffset = index > 0 ? chipSize : .0;
     final animationOffset = index.clamp(0, 1) * fullSize - jumpOffset;
 
-    await scrollController!.animateTo(
+    scrollController!.animateTo(
       animationOffset,
       duration: widget.animateToSnapDuration,
       curve: widget.animateToSnapCurve,

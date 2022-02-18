@@ -85,6 +85,9 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
 
+  /// stores the last known box constraints,
+  /// only used when triggering jump programmatically via the controller.
+  @protected
   BoxConstraints? get lastKnownConstraints;
 
   @protected
@@ -210,14 +213,18 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
         _lastKnownConstraints = constraints;
 
-        _scrollController ??= ScrollController(
+        final scrollController = _scrollController ??= ScrollController(
             keepScrollOffset: false,
             initialScrollOffset: _calculateScrollOffset(constraints, size));
 
         if (_shouldUpdateScrollPosition) {
+          final jumpTarget = _calculateScrollOffset(constraints, size);
+
           _shouldUpdateScrollPosition = false;
 
-          _scrollController?.jumpTo(_calculateScrollOffset(constraints, size));
+          if (!isDragActive && scrollController.offset != jumpTarget) {
+            scrollController.jumpTo(jumpTarget);
+          }
         }
 
         _indexedCards = _buildVisibleCards(
@@ -253,7 +260,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
                 ? const NeverScrollableScrollPhysics()
                 : null,
             scrollDirection: widget.scrollDirection,
-            controller: _scrollController,
+            controller: scrollController,
             child: singleScrollChild,
           ),
         );
