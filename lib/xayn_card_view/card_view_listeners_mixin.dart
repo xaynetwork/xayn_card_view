@@ -23,16 +23,12 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   @protected
   void Function(PointerDownEvent?) onDragStart(BoxConstraints constraints) =>
       (PointerDownEvent? event) {
-        if (widget.disableGestures) return;
-
         _confirmDragging(constraints);
       };
 
   @protected
   void Function(PointerMoveEvent?) onDragUpdate(BoxConstraints constraints) =>
       (PointerMoveEvent? event) {
-        if (widget.disableGestures) return;
-
         if (!_didStartDragging) {
           _confirmDragging(constraints);
         }
@@ -41,8 +37,6 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   @protected
   void Function(PointerUpEvent?) onDragEnd(BoxConstraints constraints) =>
       (PointerUpEvent? event) async {
-        if (widget.disableGestures) return;
-
         _isDragActive = false;
 
         final fullSize =

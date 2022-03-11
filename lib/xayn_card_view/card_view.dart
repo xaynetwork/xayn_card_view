@@ -253,12 +253,14 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           ),
         );
 
-        return Listener(
-          onPointerDown: onDragStart(constraints),
-          onPointerMove: onDragUpdate(constraints),
-          onPointerUp: onDragEnd(constraints),
-          child: scrollable,
-        );
+        return widget.disableGestures
+            ? scrollable
+            : Listener(
+                onPointerDown: onDragStart(constraints),
+                onPointerMove: onDragUpdate(constraints),
+                onPointerUp: onDragEnd(constraints),
+                child: scrollable,
+              );
       };
 
   void _updateScrollPosition() {
