@@ -19,6 +19,8 @@ const EdgeInsets _kPadding = EdgeInsets.zero;
 typedef IndexChangedCallback = void Function(int index);
 typedef BoxBorderBuilder = BoxBorder? Function(int index);
 typedef CardIdentifierBuilder = String Function(int index);
+typedef AuxiliaryCardBuilder = Widget Function(
+    BuildContext context, double? width, double? height);
 
 class CardView extends ImplicitlyAnimatedWidget {
   final int itemCount;
@@ -38,6 +40,8 @@ class CardView extends ImplicitlyAnimatedWidget {
   final CardIdentifierBuilder? cardIdentifierBuilder;
   final EdgeInsets padding;
   final bool disableGestures;
+  final AuxiliaryCardBuilder? noItemsBuilder;
+  final AuxiliaryCardBuilder? finalItemBuilder;
 
   CardView({
     Key? key,
@@ -57,6 +61,8 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.padding = _kPadding,
     this.disableGestures = false,
     this.cardIdentifierBuilder,
+    this.noItemsBuilder,
+    this.finalItemBuilder,
     Curve animationCurve = Curves.linear,
     IndexedWidgetBuilder? secondaryItemBuilder,
     BoxBorderBuilder? borderBuilder,
@@ -76,6 +82,7 @@ class CardView extends ImplicitlyAnimatedWidget {
 @protected
 abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
   ScrollController? _scrollController;
+  late int _overflowItemCount;
 
   @protected
   int index = 0;
@@ -84,6 +91,8 @@ abstract class CardViewAnimatedState extends AnimatedWidgetBaseState<CardView> {
   Tween<double>? _itemSpacing;
   Tween<EdgeInsets>? _padding;
   Tween<BorderRadius>? _clipBorderRadius;
+
+  int get overflowItemCount => _overflowItemCount;
 
   /// stores the last known box constraints,
   /// only used when triggering jump programmatically via the controller.
@@ -143,6 +152,10 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
 
     final controller = widget.controller;
 
+    _overflowItemCount = widget.finalItemBuilder != null
+        ? widget.itemCount + 1
+        : widget.itemCount;
+
     if (controller != null) {
       assert(controller.index < widget.itemCount,
           'Controller index is out of bound. index should be less than itemCount.');
@@ -152,6 +165,8 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     }
 
     widget.onIndexChanged?.call(index);
+
+    if (widget.itemCount == 1) widget.onFinalIndex?.call();
 
     super.controller.addListener(_updateScrollPosition);
   }
@@ -171,6 +186,10 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.itemCount != widget.itemCount) {
+      _overflowItemCount = widget.finalItemBuilder != null
+          ? widget.itemCount + 1
+          : widget.itemCount;
+
       _updateIndex(
           widget.itemCount > 0 ? index.clamp(0, widget.itemCount - 1) : 0);
 
@@ -216,6 +235,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
             initialScrollOffset: _calculateScrollOffset(constraints, size));
 
         _indexedCards = _buildVisibleCards(
+          context: context,
           itemSpacing: itemSpacing,
           clipBorderRadius: clipBorderRadius.clamp(
             Radius.zero,
@@ -292,41 +312,55 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
   List<Widget> _buildVisibleCards({
     required double itemSpacing,
     required BorderRadius clipBorderRadius,
+    required BuildContext context,
     double? width,
     double? height,
-  }) =>
-      [
-        if (index > 0)
-          _buildCard(
-            index: index - 1,
-            builder: widget.secondaryItemBuilder,
-            itemSpacing: itemSpacing,
-            borderBuilder: widget.borderBuilder,
-            clipBorderRadius: clipBorderRadius,
-            width: width,
-            height: height,
-          ),
-        if (widget.itemCount > 0)
-          _buildCard(
-            index: index,
-            builder: widget.itemBuilder,
-            itemSpacing: itemSpacing,
-            borderBuilder: widget.borderBuilder,
-            clipBorderRadius: clipBorderRadius,
-            width: width,
-            height: height,
-          ),
-        if (index < widget.itemCount - 1)
-          _buildCard(
-            index: index + 1,
-            builder: widget.secondaryItemBuilder,
-            itemSpacing: itemSpacing,
-            borderBuilder: widget.borderBuilder,
-            clipBorderRadius: clipBorderRadius,
-            width: width,
-            height: height,
-          ),
-      ];
+  }) {
+    // resolvedIndex is the actual data index, without a maybe-included finalItemBuilder card
+    final resolvedIndex = index > 0 ? index.clamp(0, widget.itemCount - 1) : 0;
+    final noItemsBuilder = widget.noItemsBuilder;
+    final finalItemBuilder = widget.finalItemBuilder;
+    final widgets = [
+      if (resolvedIndex > 0 && index <= widget.itemCount - 1)
+        _buildCard(
+          index: resolvedIndex - 1,
+          builder: widget.secondaryItemBuilder,
+          itemSpacing: itemSpacing,
+          borderBuilder: widget.borderBuilder,
+          clipBorderRadius: clipBorderRadius,
+          width: width,
+          height: height,
+        ),
+      if (widget.itemCount > 0)
+        _buildCard(
+          index: resolvedIndex,
+          builder: widget.itemBuilder,
+          itemSpacing: itemSpacing,
+          borderBuilder: widget.borderBuilder,
+          clipBorderRadius: clipBorderRadius,
+          width: width,
+          height: height,
+        ),
+      if (resolvedIndex < widget.itemCount - 1)
+        _buildCard(
+          index: resolvedIndex + 1,
+          builder: widget.secondaryItemBuilder,
+          itemSpacing: itemSpacing,
+          borderBuilder: widget.borderBuilder,
+          clipBorderRadius: clipBorderRadius,
+          width: width,
+          height: height,
+        ),
+      if (index >= widget.itemCount - 1 && finalItemBuilder != null)
+        finalItemBuilder(context, width, height),
+    ];
+
+    if (widgets.isEmpty && noItemsBuilder != null) {
+      return [noItemsBuilder(context, width, height)];
+    }
+
+    return widgets;
+  }
 
   Widget _buildCard({
     required int index,
@@ -363,7 +397,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
       jump(pageOffset: offset);
     } else if (index != controller.index) {
       setState(() {
-        assert(controller.index < widget.itemCount,
+        assert(controller.index < _overflowItemCount,
             'Controller index is out of bound. index should be less than itemCount.');
 
         _updateIndex(controller.index);
