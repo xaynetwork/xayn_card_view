@@ -50,7 +50,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
 
         int pageOffset = 0;
 
-        if (delta > widget.deltaThreshold && index < widget.itemCount - 1) {
+        if (delta > widget.deltaThreshold && index < overflowItemCount) {
           pageOffset++;
         } else if (delta < -widget.deltaThreshold && index > 0) {
           pageOffset--;
