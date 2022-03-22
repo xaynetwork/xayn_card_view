@@ -154,7 +154,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     final controller = widget.controller;
 
     if (controller != null) {
-      assert(controller.index < widget.itemCount,
+      assert(controller.index == 0 || controller.index < widget.itemCount,
           'Controller index is out of bound. index should be less than itemCount.');
       _updateIndex(controller.index);
 
