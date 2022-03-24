@@ -393,12 +393,13 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
       jump(pageOffset: offset);
     } else if (index != controller.index) {
       setState(() {
-        assert(controller.index < overflowItemCount,
-            'Controller index is out of bound. index should be less than itemCount.');
+        if (controller.index == index) return;
 
-        _updateIndex(controller.index);
+        index = controller.index;
 
         widget.onIndexChanged?.call(index);
+
+        _updateScrollPosition();
       });
     }
   }
