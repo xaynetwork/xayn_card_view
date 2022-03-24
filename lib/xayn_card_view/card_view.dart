@@ -398,11 +398,27 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     } else if (index != controller.index) {
       if (controller.index == index) return;
 
-      final len = controller.index - index;
-      final pageOffset = len > 0 ? 1 : -1;
+      switch (controller.jumpBehavior) {
+        case JumpBehavior.direct:
+          setState(() {
+            index = controller.index;
 
-      for (var i = 0; i < len; i++) {
-        await jump(pageOffset: pageOffset);
+            widget.onIndexChanged?.call(index);
+
+            _updateScrollPosition();
+          });
+
+          break;
+
+        case JumpBehavior.animated:
+          final len = controller.index - index;
+          final pageOffset = len > 0 ? 1 : -1;
+
+          for (var i = 0; i < len; i++) {
+            await jump(pageOffset: pageOffset);
+          }
+
+          break;
       }
     }
   }

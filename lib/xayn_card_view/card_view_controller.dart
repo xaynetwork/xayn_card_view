@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 enum JumpDirection { up, down }
+enum JumpBehavior { direct, animated }
 
 class CardViewController extends ChangeNotifier {
   int _index = 0;
@@ -15,6 +16,8 @@ class CardViewController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  JumpBehavior jumpBehavior = JumpBehavior.direct;
 
   int _offset = 0;
 
