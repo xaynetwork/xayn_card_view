@@ -8,7 +8,9 @@ import 'package:xayn_card_view/xayn_card_view/no_overscroll_behavior.dart';
 const double _kCardSizeFraction = .9;
 const double _kItemSpacing = 12.0;
 const Duration _kAnimateToSnapDuration = Duration(milliseconds: 500);
+const Duration _kAnimateToNextIndexDuration = Duration(milliseconds: 2000);
 const Curve _kAnimateToSnapCurve = Curves.linearToEaseOut;
+const Curve _kAnimateToNextIndexCurve = Curves.fastOutSlowIn;
 const Axis _kScrollDirection = Axis.vertical;
 const BorderRadius _kClipBorderRadius = BorderRadius.all(
   Radius.circular(12.0),
@@ -32,7 +34,9 @@ class CardView extends ImplicitlyAnimatedWidget {
   final BoxBorderBuilder borderBuilder;
   final BorderRadius clipBorderRadius;
   final Duration animateToSnapDuration;
+  final Duration animateToNextIndexDuration;
   final Curve animateToSnapCurve;
+  final Curve animateToNextIndexCurve;
   final Axis scrollDirection;
   final double deltaThreshold;
   final VoidCallback? onFinalIndex;
@@ -53,7 +57,9 @@ class CardView extends ImplicitlyAnimatedWidget {
     this.itemSpacing = _kItemSpacing,
     this.clipBorderRadius = _kClipBorderRadius,
     this.animateToSnapDuration = _kAnimateToSnapDuration,
+    this.animateToNextIndexDuration = _kAnimateToNextIndexDuration,
     this.animateToSnapCurve = _kAnimateToSnapCurve,
+    this.animateToNextIndexCurve = _kAnimateToNextIndexCurve,
     this.scrollDirection = _kScrollDirection,
     this.deltaThreshold = _kDeltaThreshold,
     this.onFinalIndex,
@@ -271,8 +277,6 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
         return Listener(
           onPointerDown:
               widget.disableGestures ? null : onDragStart(constraints),
-          onPointerMove:
-              widget.disableGestures ? null : onDragUpdate(constraints),
           onPointerUp: widget.disableGestures ? null : onDragEnd(constraints),
           child: scrollable,
         );
@@ -385,22 +389,21 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
     );
   }
 
-  void _onControllerChanged() {
+  void _onControllerChanged() async {
     final controller = widget.controller!;
     final offset = controller.getNextOffsetAndReset();
 
     if (offset != 0) {
       jump(pageOffset: offset);
     } else if (index != controller.index) {
-      setState(() {
-        if (controller.index == index) return;
+      if (controller.index == index) return;
 
-        index = controller.index;
+      final len = controller.index - index;
+      final pageOffset = len > 0 ? 1 : -1;
 
-        widget.onIndexChanged?.call(index);
-
-        _updateScrollPosition();
-      });
+      for (var i = 0; i < len; i++) {
+        await jump(pageOffset: pageOffset);
+      }
     }
   }
 

@@ -7,7 +7,6 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   double chipSize = .0;
 
   double _realOffset = .0;
-  bool _didStartDragging = false;
   bool _isDragActive = false;
   bool _isScrollPosAnimating = false;
 
@@ -24,14 +23,6 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
   void Function(PointerDownEvent?) onDragStart(BoxConstraints constraints) =>
       (PointerDownEvent? event) {
         _confirmDragging(constraints);
-      };
-
-  @protected
-  void Function(PointerMoveEvent?) onDragUpdate(BoxConstraints constraints) =>
-      (PointerMoveEvent? event) {
-        if (!_didStartDragging) {
-          _confirmDragging(constraints);
-        }
       };
 
   @protected
@@ -104,7 +95,7 @@ mixin CardViewListenersMixin on CardViewAnimatedState {
 
     chipSize = (1.0 - size) * fullSize;
 
-    _didStartDragging = _isDragActive = true;
+    _isDragActive = true;
     _realOffset = scrollController!.offset;
   }
 
