@@ -240,14 +240,17 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           height: h,
         );
 
+        final isEmptyList = widget.itemCount == 0;
         final fraction = itemSpacing * .5;
         final singleScrollChild = Padding(
-          padding: EdgeInsets.only(
-            top: isVerticalScroll ? fraction : .0,
-            bottom: isVerticalScroll ? fraction : .0,
-            left: isVerticalScroll ? .0 : fraction,
-            right: isVerticalScroll ? .0 : fraction,
-          ),
+          padding: isEmptyList
+              ? EdgeInsets.zero
+              : EdgeInsets.only(
+                  top: isVerticalScroll ? fraction : .0,
+                  bottom: isVerticalScroll ? fraction : .0,
+                  left: isVerticalScroll ? .0 : fraction,
+                  right: isVerticalScroll ? .0 : fraction,
+                ),
           child: CardSequence(
             direction:
                 isVerticalScroll ? Direction.vertical : Direction.horizontal,
@@ -274,7 +277,7 @@ class _CardViewState extends CardViewAnimatedState with CardViewListenersMixin {
           onPointerMove:
               widget.disableGestures ? null : onDragUpdate(constraints),
           onPointerUp: widget.disableGestures ? null : onDragEnd(constraints),
-          child: scrollable,
+          child: isEmptyList ? singleScrollChild : scrollable,
         );
       };
 
