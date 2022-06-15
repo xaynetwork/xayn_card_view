@@ -1,5 +1,5 @@
-name: xayn_card_view_example
-description: Card view example by Xayn.
+name: kitty_app
+description: Card view example that displays cat images in cards by Xayn.
 version: 0.0.1
 publish_to: none
 
@@ -12,10 +12,13 @@ dependencies:
     sdk: flutter
   xayn_card_view:
     path: ../../xayn_card_view
+  shimmer: 2.0.0
+  http: 0.13.4
+  font_awesome_flutter: 10.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: 1.0.4
+  flutter_lints: 2.0.1
