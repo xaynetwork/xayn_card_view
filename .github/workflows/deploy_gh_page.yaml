@@ -37,7 +37,7 @@ jobs:
         working-directory: ./example
 
       - name: Build release project
-        run: flutter build web
+        run: flutter build web --web-renderer html
         working-directory: ./example
 
       - name: Upload production-ready build files
